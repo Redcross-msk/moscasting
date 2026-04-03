@@ -18,7 +18,7 @@ CREATE TABLE "ProducerActorDirectThread" (
     "producerProfileId" TEXT NOT NULL,
     "actorProfileId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "ProducerActorDirectThread_pkey" PRIMARY KEY ("id")
 );
