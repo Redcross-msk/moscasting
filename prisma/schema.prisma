@@ -1,0 +1,633 @@
+// МОСКАСТИНГ — production-oriented domain schema (UUID, indexes, extensible enums)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ACTOR
+  PRODUCER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
+enum BodyType {
+  SLIM
+  ATHLETIC
+  AVERAGE
+  STOCKY
+  HEAVY
+}
+
+/// Тип внешности (вместо свободного текста).
+enum EthnicAppearance {
+  EUROPEAN
+  ASIAN
+  AFRO_AMERICAN
+  SLAVIC
+}
+
+/// Татуировки и пирсинг — один вариант.
+enum TattooPiercingOption {
+  NONE
+  COVERED_AREAS
+  OPEN_AREAS
+}
+
+/// Борода / усы — один вариант.
+enum FacialHairOption {
+  BEARD_REFUSES_SHAVE
+  BEARD_CAN_SHAVE
+  NO_CAN_GROW
+  NO_REFUSES_GROW
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY
+  PARTIAL
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+  BLOCKED
+}
+
+enum CastingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+  ARCHIVED
+  BLOCKED
+}
+
+/// Тип роли на кастинге: массовка / групповка / один актёр.
+enum CastingCategory {
+  MASS
+  GROUP
+  SOLO
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  INVITED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  CAST_PASSED
+  ARCHIVED
+}
+
+enum ReviewDirection {
+  ACTOR_TO_PRODUCER
+  PRODUCER_TO_ACTOR
+}
+
+enum ReviewModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  ACTOR_PROFILE
+  PRODUCER_PROFILE
+  CASTING
+  MESSAGE
+  CHAT
+}
+
+enum MediaKind {
+  PHOTO
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+enum MessageModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  TELEGRAM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  actorProfile    ActorProfile?
+  producerProfile ProducerProfile?
+
+  messagesSent Message[]      @relation("MessageSender")
+  messageReads MessageRead[]
+  reviewsAuthored Review[]    @relation("ReviewAuthor")
+  reviewsAbout    Review[]     @relation("ReviewSubject")
+  reportsFiled    Report[]     @relation("ReportReporter")
+  adminLogs       AdminActivityLog[]
+  castingViews      CastingView[]
+  profileViewsActor ProfileView[] @relation("ProfileViewViewer")
+  notifications     Notification[]
+  favoriteActors    FavoriteActor[]
+  favoriteCastings  FavoriteCasting[]
+  directThreadMessages DirectThreadMessage[] @relation("DirectThreadSender")
+}
+
+model City {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  region    String?
+  isDefault Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  actorProfiles ActorProfile[]
+  castings      Casting[]
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  actorSkills ActorSkill[]
+}
+
+model ActorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName  String
+  birthDate DateTime
+  gender    Gender
+  heightCm  Int
+  weightKg  Int
+  bodyType  BodyType
+
+  ethnicAppearance     EthnicAppearance     @default(EUROPEAN)
+  tattooPiercingOption TattooPiercingOption @default(NONE)
+  facialHairOption     FacialHairOption     @default(NO_CAN_GROW)
+
+  /// Коды языков: russian, english, chinese, …
+  languages String[] @default([])
+
+  /// Коды проф. навыков: vocal, dance, …
+  professionalSkillKeys String[] @default([])
+
+  bio          String
+  availability AvailabilityStatus @default(AVAILABLE)
+  cityId       String
+  city         City               @relation(fields: [cityId], references: [id])
+
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationComment String?         @db.Text
+  isHiddenByUser   Boolean          @default(false)
+  isBlockedByAdmin Boolean          @default(false)
+  deletedAt        DateTime?
+
+  ratingAverage Decimal @default(0) @db.Decimal(4, 2)
+  ratingCount   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills        ActorSkill[]
+  media         MediaFile[]
+  applications  Application[]
+  profileViews  ProfileView[] @relation("ProfileViewActor")
+  homepageFeature HomepageFeaturedActor?
+  favoritedBy     FavoriteActor[]
+  directThreadsActor ProducerActorDirectThread[]
+}
+
+/// Проект в фильмографии кастинг-директора (карточка с постером и ссылкой).
+model ProducerFilmographyEntry {
+  id                String          @id @default(uuid())
+  producerProfileId String
+  producerProfile   ProducerProfile @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+  title             String
+  releaseDate       DateTime?
+  kinopoiskUrl      String?
+  /// Прямая ссылка на постер (статичный URL или загруженный файл).
+  posterPublicUrl   String?
+  sortOrder         Int             @default(0)
+  createdAt         DateTime        @default(now())
+
+  @@index([producerProfileId])
+}
+
+/// Личный чат продюсер ↔ актёр без привязки к кастингу.
+model ProducerActorDirectThread {
+  id                String          @id @default(uuid())
+  producerProfileId String
+  actorProfileId    String
+  producerProfile   ProducerProfile @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+  actorProfile      ActorProfile    @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  messages          DirectThreadMessage[]
+
+  @@unique([producerProfileId, actorProfileId])
+  @@index([producerProfileId])
+  @@index([actorProfileId])
+}
+
+model DirectThreadMessage {
+  id        String                   @id @default(uuid())
+  threadId  String
+  thread    ProducerActorDirectThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User                     @relation("DirectThreadSender", fields: [senderId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime                 @default(now())
+
+  @@index([threadId])
+}
+
+model FavoriteActor {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorProfileId String
+  actorProfile   ActorProfile @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, actorProfileId])
+  @@index([userId])
+}
+
+model FavoriteCasting {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  castingId String
+  casting   Casting  @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, castingId])
+  @@index([userId])
+}
+
+model ActorSkill {
+  id             String       @id @default(uuid())
+  actorProfileId String
+  skillId        String
+  customLabel    String?
+  actorProfile   ActorProfile @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  skill          Skill        @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([actorProfileId, skillId])
+  @@index([skillId])
+}
+
+model ProducerProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName         String
+  companyName      String
+  positionTitle    String
+  filmography      String?
+
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationComment String?         @db.Text
+  isHiddenByUser   Boolean          @default(false)
+  isBlockedByAdmin Boolean          @default(false)
+  deletedAt        DateTime?
+
+  ratingAverage Decimal @default(0) @db.Decimal(4, 2)
+  ratingCount   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media         MediaFile[]
+  castings      Casting[]
+  applications  Application[]
+  filmographyEntries ProducerFilmographyEntry[]
+  directThreads    ProducerActorDirectThread[]
+}
+
+/// Универсальное медиа: ровно один из FK владельца должен быть задан (проверка в сервисе).
+model MediaFile {
+  id          String    @id @default(uuid())
+  kind        MediaKind
+  storageKey  String
+  publicUrl   String?
+  mimeType    String?
+  sortOrder   Int       @default(0)
+  moderationStatus ModerationStatus @default(PENDING)
+  isAvatar    Boolean   @default(false)
+
+  actorProfileId    String?
+  actorProfile      ActorProfile?    @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  producerProfileId String?
+  producerProfile   ProducerProfile? @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+  castingId         String?
+  casting           Casting?         @relation(fields: [castingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([actorProfileId])
+  @@index([producerProfileId])
+  @@index([castingId])
+}
+
+model Casting {
+  id                    String        @id @default(uuid())
+  producerProfileId     String
+  producerProfile       ProducerProfile @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+  title                 String
+  description           String
+  scheduledAt           DateTime?
+  paymentInfo           String?
+  cityId                String
+  city                  City          @relation(fields: [cityId], references: [id])
+  applicationDeadline   DateTime?
+
+  status             CastingStatus    @default(DRAFT)
+  moderationStatus   ModerationStatus @default(PENDING)
+
+  slotsNeeded            Int?
+  projectType            String?
+  candidateRequirements  String?
+
+  castingCategory      CastingCategory?
+  paymentRub           Int?
+  shootStartTime      String?
+  workHoursNote        String?
+  metroOrPlace         String?
+  metroStation         String?
+  addressLine          String?
+  /// JSON: текст массовки, массив из 5 ролей или параметры одного актёра.
+  roleRequirementsJson Json?
+
+  /// Комментарий админа при отклонении модерации (видит продюсер).
+  moderationComment    String?        @db.Text
+
+  applicationsCount Int @default(0)
+  viewsCount        Int @default(0)
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media         MediaFile[]
+  applications  Application[]
+  castingViews  CastingView[]
+  homepageFeature HomepageFeaturedCasting?
+  favoritedBy   FavoriteCasting[]
+}
+
+/// Слоты главной страницы (1–6): админ выбирает кастинги для платного размещения.
+model HomepageFeaturedCasting {
+  id        String   @id @default(uuid())
+  position  Int      @unique
+  castingId String   @unique
+  casting   Casting  @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Слоты главной страницы (1–6): админ выбирает актёров для платного размещения.
+model HomepageFeaturedActor {
+  id             String       @id @default(uuid())
+  position       Int          @unique
+  actorProfileId String       @unique
+  actorProfile   ActorProfile @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Application {
+  id                String          @id @default(uuid())
+  castingId         String
+  casting           Casting         @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  actorProfileId    String
+  actorProfile      ActorProfile    @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
+  producerProfileId String
+  producerProfile   ProducerProfile @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+
+  status    ApplicationStatus @default(SUBMITTED)
+  coverNote String?
+
+  viewedAt      DateTime?
+  shortlistedAt DateTime?
+  invitedAt     DateTime?
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  withdrawnAt   DateTime?
+  castPassedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat    Chat?
+  reviews Review[]
+
+  @@unique([castingId, actorProfileId])
+  @@index([producerProfileId])
+  @@index([actorProfileId])
+  @@index([status])
+}
+
+model Chat {
+  id            String      @id @default(uuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// Заполняется при отказе продюсера: новые сообщения запрещены.
+  closedAt      DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  body      String
+  /// Карточка профиля актёра при отклике (kind: actor_profile) и др.
+  payload   Json?
+  moderationStatus MessageModerationStatus @default(APPROVED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reads     MessageRead[]
+  reports   Report[]
+
+  @@index([chatId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model MessageRead {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+/// Отзыв привязан к application; автор и получатель — User (роли выводятся из профилей).
+model Review {
+  id            String   @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  subjectId     String
+  subject       User     @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  direction     ReviewDirection
+  stars         Int
+  text          String
+  moderationStatus ReviewModerationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([applicationId, direction])
+  @@index([subjectId])
+  @@index([authorId])
+}
+
+model Report {
+  id          String           @id @default(uuid())
+  reporterId  String
+  reporter    User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType  ReportTargetType
+  targetId    String
+  reason      String
+  status      ReportStatus     @default(OPEN)
+  adminNotes  String?
+
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@index([reporterId])
+  @@index([messageId])
+}
+
+model CastingView {
+  id        String   @id @default(uuid())
+  castingId String
+  casting   Casting  @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  viewerId  String?
+  viewer    User?    @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([castingId])
+  @@index([createdAt])
+}
+
+model ProfileView {
+  id             String       @id @default(uuid())
+  actorProfileId String
+  actorProfile   ActorProfile @relation("ProfileViewActor", fields: [actorProfileId], references: [id], onDelete: Cascade)
+  viewerId       String?
+  viewer         User?        @relation("ProfileViewViewer", fields: [viewerId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+
+  @@index([actorProfileId])
+}
+
+/// Placeholder для этапа 2 (уведомления).
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel   @default(IN_APP)
+  status    NotificationStatus  @default(PENDING)
+  title     String
+  body      String?
+  payload   Json?
+  createdAt DateTime            @default(now())
+  sentAt    DateTime?
+  readAt    DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, readAt])
+}
+
+model AdminActivityLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}

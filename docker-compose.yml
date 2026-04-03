@@ -1,0 +1,32 @@
+# Опционально: только если установлен Docker. Для Windows без Docker см. docs/SETUP-WINDOWS-NO-DOCKER.md
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moscasting
+      POSTGRES_PASSWORD: moscasting
+      POSTGRES_DB: moscasting
+    ports:
+      - "5432:5432"
+    volumes:
+      - moscasting_pg:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://moscasting:moscasting@postgres:5432/moscasting?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-docker-secret-min-32-characters-long}
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_NAME: МОСКАСТИНГ
+      NEXT_PUBLIC_DEFAULT_CITY_SLUG: moscow
+    depends_on:
+      - postgres
+
+volumes:
+  moscasting_pg:
