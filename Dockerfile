@@ -1,7 +1,10 @@
 # Production-oriented image; для локальной разработки удобнее Postgres из compose + `npm run dev` на хосте.
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
+# postinstall → prisma generate; схема должна быть в образе до npm install
+COPY prisma ./prisma
 RUN npm install
 
 FROM node:20-bookworm-slim AS builder
