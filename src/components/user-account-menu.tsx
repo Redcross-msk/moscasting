@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +17,7 @@ import {
 export function UserAccountMenu() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
@@ -58,46 +58,81 @@ export function UserAccountMenu() {
           {session.user.email}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/explore?tab=castings">Главная</Link>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/explore?tab=castings");
+          }}
+        >
+          Главная
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/explore?tab=castings">Кастинги</Link>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/explore?tab=castings");
+          }}
+        >
+          Кастинги
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/explore?tab=favorites">Избранное</Link>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/explore?tab=favorites");
+          }}
+        >
+          Избранное
         </DropdownMenuItem>
         {role === "PRODUCER" ? (
-          <DropdownMenuItem asChild>
-            <Link href={myCastingsHref}>Мои кастинги</Link>
+          <DropdownMenuItem
+            onSelect={() => {
+              router.push(myCastingsHref);
+            }}
+          >
+            Мои кастинги
           </DropdownMenuItem>
         ) : null}
         {role === "ACTOR" ? (
-          <DropdownMenuItem asChild>
-            <Link href={myAppsHref}>Мои отклики</Link>
+          <DropdownMenuItem
+            onSelect={() => {
+              router.push(myAppsHref);
+            }}
+          >
+            Мои отклики
           </DropdownMenuItem>
         ) : null}
         {role !== "ADMIN" ? (
-          <DropdownMenuItem asChild>
-            <Link href={chatsHref}>Чаты</Link>
+          <DropdownMenuItem
+            onSelect={() => {
+              router.push(chatsHref);
+            }}
+          >
+            Чаты
           </DropdownMenuItem>
         ) : null}
-        <DropdownMenuItem asChild>
-          <Link href="/notifications" className="flex w-full items-center justify-between gap-2">
-            Уведомления
-            {notifCount > 0 ? (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground">
-                {notifCount > 99 ? "99+" : notifCount}
-              </span>
-            ) : null}
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/notifications");
+          }}
+          className="flex cursor-pointer items-center justify-between gap-2"
+        >
+          <span>Уведомления</span>
+          {notifCount > 0 ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground">
+              {notifCount > 99 ? "99+" : notifCount}
+            </span>
+          ) : null}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={profileHref}>Профиль</Link>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push(profileHref);
+          }}
+        >
+          Профиль
         </DropdownMenuItem>
         {role === "ADMIN" ? (
-          <DropdownMenuItem asChild>
-            <Link href="/admin">Админка</Link>
+          <DropdownMenuItem
+            onSelect={() => {
+              router.push("/admin");
+            }}
+          >
+            Админка
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />

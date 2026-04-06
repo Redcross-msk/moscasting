@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ApplicationStatus } from "@prisma/client";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatMessageContent } from "@/components/chat-message-content";
@@ -57,6 +57,8 @@ export function ActorChatsInbox({
   directChatDisabledMessage?: string | null;
 }) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
   const [pending, start] = useTransition();
   const [composer, setComposer] = useState("");
@@ -92,6 +94,11 @@ export function ActorChatsInbox({
     });
   }
 
+  function closePanel() {
+    setPanel(null);
+    router.replace(pathname);
+  }
+
   return (
     <div className="space-y-4">
       {directChatDisabledMessage ? (
@@ -99,8 +106,13 @@ export function ActorChatsInbox({
           {directChatDisabledMessage}
         </div>
       ) : null}
-      <div className="grid min-h-[480px] gap-4 md:grid-cols-12 md:items-start">
-      <aside className="flex flex-col gap-4 border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+      <div className="grid min-h-[min(100dvh-12rem,720px)] gap-0 md:min-h-[480px] md:grid-cols-12 md:items-start md:gap-4">
+      <aside
+        className={cn(
+          "flex flex-col gap-4 border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4",
+          panel ? "hidden md:flex" : "flex",
+        )}
+      >
         <div className="rounded-xl border border-border bg-muted/25 p-3 shadow-sm">
           <h2 className="mb-3 border-b border-border/80 pb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
             Личные сообщения
@@ -163,25 +175,36 @@ export function ActorChatsInbox({
         </div>
       </aside>
 
-      <section className="flex min-h-[min(520px,70vh)] flex-col md:col-span-8 md:min-h-[480px]">
+      <section className="flex min-h-[min(420px,65dvh)] flex-col md:col-span-8 md:min-h-[480px]">
         {!panel ? (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Выберите кастинг или личный диалог слева.
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
+            Выберите кастинг или личный диалог в списке выше.
           </div>
         ) : (
           <>
-            <div className="mb-3 border-b border-border pb-3">
-              <h2 className="text-lg font-bold">{panel.title}</h2>
-              <p className="text-sm text-muted-foreground">{panel.subtitle}</p>
+            <div className="mb-3 flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-start sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full shrink-0 sm:order-2 sm:w-auto md:hidden"
+                onClick={closePanel}
+              >
+                ← К списку чатов
+              </Button>
+              <div className="min-w-0 flex-1 sm:order-1">
+                <h2 className="text-lg font-bold leading-tight">{panel.title}</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">{panel.subtitle}</p>
+              </div>
             </div>
-            <div className="min-h-[200px] flex-1 space-y-2 overflow-y-auto rounded-xl border border-border/80 bg-muted/20 p-2 sm:min-h-[240px] sm:p-3">
+            <div className="min-h-[min(280px,40dvh)] flex-1 space-y-2 overflow-y-auto rounded-xl border border-border/80 bg-muted/20 p-2 sm:min-h-[240px] sm:p-3">
               {panel.messages.map((m) => (
                 <div
                   key={m.id}
                   className={
                     m.senderId === currentUserId
-                      ? "ml-auto max-w-[min(100%,18rem)] rounded-2xl border border-primary/25 bg-white/90 px-2.5 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:border-primary/35 dark:bg-background/85 sm:max-w-[85%]"
-                      : "mr-auto max-w-[min(100%,18rem)] rounded-2xl border border-border bg-white/85 px-2.5 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:bg-background/80 sm:max-w-[85%]"
+                      ? "ml-auto max-w-[min(100%,20rem)] rounded-2xl border border-primary/25 bg-white/90 px-3 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:border-primary/35 dark:bg-background/85 sm:max-w-[80%]"
+                      : "mr-auto max-w-[min(100%,20rem)] rounded-2xl border border-border bg-white/85 px-3 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:bg-background/80 sm:max-w-[80%]"
                   }
                 >
                   <p className="text-[10px] opacity-70 sm:text-xs">{m.senderEmail}</p>
@@ -225,7 +248,7 @@ export function ActorChatsInbox({
           </>
         )}
       </section>
-    </div>
+      </div>
     </div>
   );
 }

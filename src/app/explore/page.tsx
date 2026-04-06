@@ -306,8 +306,8 @@ export default async function ExplorePage({
 
   return (
     <div className="min-w-0 space-y-6 pb-8 sm:space-y-8 sm:pb-10">
-      <div className="flex min-w-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="mobile-scroll-row min-w-0 flex-1 justify-start gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto border-b border-border pb-3 [-webkit-overflow-scrolling:touch] sm:gap-3 md:gap-4">
+        <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
           <Link
             href={`${base}?tab=castings`}
             className={cn(
@@ -338,7 +338,9 @@ export default async function ExplorePage({
             Избранное
           </Link>
         </div>
-        <ExploreRoleBar role={session.user.role} className="sm:max-w-none sm:flex-initial" />
+        <div className="min-w-0 flex-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] md:pb-0">
+          <ExploreRoleBar role={session.user.role} className="justify-end" />
+        </div>
       </div>
 
       <HomePublicBrowse

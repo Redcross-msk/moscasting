@@ -108,17 +108,7 @@ function CastingRow({
   });
 
   const mainCatalog = (
-    <div className="relative min-w-0 flex-1 space-y-2 border-l-4 border-primary pl-3 pr-10 sm:pl-4 md:pr-4">
-      {showFavorite && userRole ? (
-        <div className="absolute right-0 top-0 z-10 md:right-1">
-          <FavoriteHeartButton
-            kind="casting"
-            targetId={c.id}
-            initial={Boolean(c.isFavorite)}
-            label="Избранный кастинг"
-          />
-        </div>
-      ) : null}
+    <div className="relative min-w-0 flex-1 space-y-2 border-l-4 border-primary pl-3 pr-2 sm:pl-4 sm:pr-3 md:pr-4">
       <div>
         <p className="text-base font-semibold text-foreground group-hover/cast:text-primary group-hover/cast:underline sm:text-lg">
           {c.title}
@@ -200,14 +190,41 @@ function CastingRow({
       <div className="h-9 w-full max-w-full shrink-0 rounded-md bg-muted md:max-w-[220px]" aria-hidden />
     ) : null;
 
-  const side = (
+  /** Каталог: на телефоне — полная ширина текста, блок цена/автор/кнопка снизу; на md+ — колонка справа */
+  const sideCatalog = (
+    <aside
+      className={cn(
+        "flex w-full flex-col gap-2 border-t border-border pt-3 text-left",
+        "md:min-w-[180px] md:w-auto md:border-l md:border-t-0 md:pl-4 md:pt-0 md:text-right md:items-end md:justify-center md:gap-3",
+      )}
+    >
+      <div className="flex flex-row items-start justify-between gap-3 md:flex-col md:items-end">
+        <div className="min-w-0 flex-1 md:w-full md:flex-none">
+          {canBrowse ? (
+            <Link
+              href={`/producers/${c.producerProfile.id}`}
+              className="line-clamp-2 break-words text-left text-sm font-medium text-primary hover:underline md:text-right"
+            >
+              {producerName}
+            </Link>
+          ) : (
+            <span className="line-clamp-2 break-words text-left text-sm text-muted-foreground md:text-right">
+              {producerName}
+            </span>
+          )}
+        </div>
+        {paymentLine ? <div className="shrink-0 text-right leading-tight">{paymentLine}</div> : null}
+      </div>
+      {applyBlock ? <div className="w-full md:max-w-[220px] md:self-end">{applyBlock}</div> : null}
+    </aside>
+  );
+
+  const sideCompact = (
     <aside
       className={cn(
         "flex shrink-0 flex-col gap-1.5 text-right sm:gap-2",
         "border-l-0 border-t-0 pt-0 md:border-l md:border-border",
-        catalogLayout && applyBlock
-          ? "w-[min(30%,7.5rem)] min-w-[6.75rem] max-w-[9rem] pl-2 sm:min-w-[7.5rem] md:w-auto md:max-w-none md:min-w-[180px] md:justify-center md:gap-3 md:pl-4"
-          : "w-[5.25rem] min-w-[5.25rem] pl-2 sm:w-auto sm:min-w-[7rem] md:min-w-[180px] md:justify-center md:gap-3 md:pl-4",
+        "w-[5.25rem] min-w-[5.25rem] pl-2 sm:w-auto sm:min-w-[7rem] md:min-w-[180px] md:justify-center md:gap-3 md:pl-4",
       )}
     >
       {paymentLine ? <div className="leading-tight">{paymentLine}</div> : null}
@@ -223,45 +240,59 @@ function CastingRow({
           {producerName}
         </span>
       )}
-      {applyBlock}
     </aside>
   );
 
-  /** На мобильных — одна строка: контент слева, цена и автор справа (без «второго этажа» под текстом) */
-  const innerRowClass =
-    "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4 " +
-    (catalogLayout ? "md:items-stretch" : "");
+  const innerRowClass = catalogLayout
+    ? "flex flex-col gap-0 p-3 pt-11 transition-colors hover:bg-muted/40 sm:p-4 md:flex-row md:items-stretch md:gap-6 md:px-5 md:py-4 md:pt-4"
+    : "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4";
 
   const mainBlock = catalogLayout ? mainCatalog : mainSimple;
+  const showHeart = Boolean(catalogLayout && showFavorite && userRole);
 
   const body = (
     <div className={innerRowClass}>
       {canBrowse ? (
-        <Link href={`/castings/${c.id}`} className="group/cast min-w-0 flex-1 outline-none">
+        <Link href={`/castings/${c.id}`} className="group/cast min-w-0 w-full outline-none md:flex-1">
           {mainBlock}
         </Link>
       ) : (
-        <button type="button" onClick={onNeedAuth} className="min-w-0 flex-1 text-left">
+        <button type="button" onClick={onNeedAuth} className="min-w-0 w-full text-left md:flex-1">
           {mainBlock}
         </button>
       )}
-      {side}
+      {catalogLayout ? sideCatalog : sideCompact}
     </div>
   );
 
   if (loading) {
     return (
-      <div className="bg-card">
+      <div className="relative overflow-hidden bg-card">
+        {showHeart ? (
+          <div className="pointer-events-none absolute right-2 top-2 z-20 opacity-50 sm:right-3 sm:top-3">
+            <div className="h-8 w-8 rounded-full bg-muted" />
+          </div>
+        ) : null}
         <div className={cn(innerRowClass, "cursor-wait opacity-80")}>
-          <div className="min-w-0 flex-1">{mainBlock}</div>
-          {side}
+          <div className="min-w-0 w-full md:flex-1">{mainBlock}</div>
+          {catalogLayout ? sideCatalog : sideCompact}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden bg-card">
+    <div className="relative overflow-hidden bg-card">
+      {showHeart ? (
+        <div className="absolute right-2 top-2 z-20 sm:right-3 sm:top-3">
+          <FavoriteHeartButton
+            kind="casting"
+            targetId={c.id}
+            initial={Boolean(c.isFavorite)}
+            label="Избранный кастинг"
+          />
+        </div>
+      ) : null}
       {body}
     </div>
   );

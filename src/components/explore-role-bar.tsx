@@ -12,7 +12,7 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
     return (
       <div
         className={cn(
-          "mobile-scroll-row w-full min-w-0 justify-start sm:justify-end",
+          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
           className,
         )}
       >
@@ -30,7 +30,7 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
     return (
       <div
         className={cn(
-          "mobile-scroll-row w-full min-w-0 justify-start sm:justify-end",
+          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
           className,
         )}
       >
@@ -54,7 +54,7 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
     return (
       <div
         className={cn(
-          "mobile-scroll-row w-full min-w-0 justify-start sm:justify-end",
+          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
           className,
         )}
       >
