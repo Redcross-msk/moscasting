@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { registerUser, type RegisterState } from "@/features/auth/register-action";
+import { persistCookieConsent } from "@/lib/cookie-consent";
 import { ActorAnketaFields } from "@/components/actor-anketa-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export function RegisterForm({
 
   useEffect(() => {
     if (state.ok) {
+      persistCookieConsent();
       router.push("/login?registered=1");
     }
   }, [state.ok, router]);
@@ -90,6 +92,32 @@ export function RegisterForm({
           )}
 
           {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+            <input
+              id="acceptLegal"
+              name="acceptLegal"
+              type="checkbox"
+              value="on"
+              required
+              className="mt-1 size-4 shrink-0 rounded border-input accent-primary"
+            />
+            <label htmlFor="acceptLegal" className="cursor-pointer text-sm leading-snug text-muted-foreground">
+              Я принимаю{" "}
+              <Link href="/privacy" className="text-primary underline underline-offset-2">
+                политику конфиденциальности
+              </Link>
+              ,{" "}
+              <Link href="/terms" className="text-primary underline underline-offset-2">
+                пользовательское соглашение
+              </Link>{" "}
+              и использование{" "}
+              <Link href="/cookies" className="text-primary underline underline-offset-2">
+                файлов cookie
+              </Link>{" "}
+              (включая необходимые cookie для входа).
+            </label>
+          </div>
 
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? "Регистрация…" : "Зарегистрироваться"}

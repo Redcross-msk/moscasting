@@ -48,6 +48,10 @@ const producerFields = z.object({
 export type RegisterState = { error?: string; ok?: boolean };
 
 export async function registerUser(_prev: RegisterState, formData: FormData): Promise<RegisterState> {
+  if (formData.get("acceptLegal") !== "on") {
+    return { error: "Нужно принять политику конфиденциальности и использование cookie" };
+  }
+
   const role = formData.get("role") as UserRole;
   const parsedBase = base.safeParse({
     email: formData.get("email"),

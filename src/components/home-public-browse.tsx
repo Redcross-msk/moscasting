@@ -91,11 +91,11 @@ function CastingRow({
 }) {
   const paymentLine =
     c.paymentRub != null ? (
-      <span className="text-base font-bold tabular-nums text-foreground">
+      <span className="text-sm font-bold tabular-nums text-foreground sm:text-base">
         {c.paymentRub.toLocaleString("ru-RU")} ₽
       </span>
     ) : c.paymentInfo ? (
-      <span className="text-sm font-semibold text-foreground">{c.paymentInfo}</span>
+      <span className="text-xs font-semibold leading-snug text-foreground sm:text-sm">{c.paymentInfo}</span>
     ) : null;
 
   const producerName = c.producerProfile.fullName?.trim() || c.producerProfile.companyName || "Продюсер";
@@ -201,17 +201,25 @@ function CastingRow({
     ) : null;
 
   const side = (
-    <aside className="flex w-full shrink-0 flex-col gap-2 border-t border-border pt-3 text-left md:w-auto md:min-w-[180px] md:flex-col md:items-end md:justify-center md:gap-3 md:border-l md:border-t-0 md:pt-0 md:pl-4 md:text-right">
-      {paymentLine}
+    <aside
+      className={cn(
+        "flex shrink-0 flex-col gap-1.5 text-right sm:gap-2",
+        "border-l-0 border-t-0 pt-0 md:border-l md:border-border",
+        catalogLayout && applyBlock
+          ? "w-[min(30%,7.5rem)] min-w-[6.75rem] max-w-[9rem] pl-2 sm:min-w-[7.5rem] md:w-auto md:max-w-none md:min-w-[180px] md:justify-center md:gap-3 md:pl-4"
+          : "w-[5.25rem] min-w-[5.25rem] pl-2 sm:w-auto sm:min-w-[7rem] md:min-w-[180px] md:justify-center md:gap-3 md:pl-4",
+      )}
+    >
+      {paymentLine ? <div className="leading-tight">{paymentLine}</div> : null}
       {canBrowse ? (
         <Link
           href={`/producers/${c.producerProfile.id}`}
-          className="w-full text-left text-sm font-medium text-primary hover:underline md:max-w-[220px] md:text-right"
+          className="line-clamp-2 break-words text-xs font-medium text-primary hover:underline sm:text-sm md:max-w-[220px]"
         >
           {producerName}
         </Link>
       ) : (
-        <span className="w-full text-left text-sm text-muted-foreground md:max-w-[220px] md:text-right">
+        <span className="line-clamp-2 break-words text-xs text-muted-foreground sm:text-sm md:max-w-[220px]">
           {producerName}
         </span>
       )}
@@ -219,9 +227,10 @@ function CastingRow({
     </aside>
   );
 
+  /** На мобильных — одна строка: контент слева, цена и автор справа (без «второго этажа» под текстом) */
   const innerRowClass =
-    "flex gap-3 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4 " +
-    (catalogLayout ? "flex-col md:flex-row md:items-stretch" : "flex-col md:flex-row md:items-start");
+    "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4 " +
+    (catalogLayout ? "md:items-stretch" : "");
 
   const mainBlock = catalogLayout ? mainCatalog : mainSimple;
 
@@ -286,8 +295,7 @@ function ActorCard({
   const inner = (
     <Card
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden border-border/80 shadow-sm transition-shadow hover:shadow-md",
-        catalogLayout ? "max-w-none" : "max-w-[280px] sm:max-w-none",
+        "flex h-full w-full max-w-none flex-col overflow-hidden border-border/80 shadow-sm transition-shadow hover:shadow-md",
       )}
     >
       <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-muted">
@@ -382,7 +390,7 @@ function ActorCard({
     </Card>
   );
 
-  const wrapClass = cn("group flex h-full w-full justify-center sm:justify-stretch");
+  const wrapClass = cn("group flex h-full w-full justify-stretch");
 
   if (loading) {
     return <div className={cn(wrapClass, "cursor-wait opacity-80")}>{inner}</div>;
@@ -450,24 +458,29 @@ export function HomePublicBrowse({
     <>
       {showCastings && (
       <section>
-        <div className="mb-3 flex min-w-0 flex-col gap-2 border-b border-border pb-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
-          <h2 className="min-w-0 shrink text-lg font-bold text-foreground sm:text-xl md:text-2xl">Кастинги</h2>
+        <div className="mb-3 flex min-w-0 flex-row items-center justify-between gap-3 border-b border-border pb-3 sm:mb-4 sm:gap-x-4">
+          <h2 className="min-w-0 shrink truncate pr-1 text-lg font-bold text-foreground sm:text-xl md:max-w-none md:text-2xl">
+            Кастинги
+          </h2>
           {castingsCatalogToolbar ? (
-            <div className="flex max-w-full min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto pb-0.5 sm:gap-3">
+            <div className="flex max-w-[min(100%,18rem)] min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] sm:max-w-none sm:gap-3">
               {castingsCatalogToolbar}
             </div>
           ) : showCastingsSeeAllLink ? (
             loading ? (
-              <span className="text-sm text-muted-foreground">…</span>
+              <span className="shrink-0 text-sm text-muted-foreground">…</span>
             ) : canBrowseCastings ? (
-              <Link href="/explore?tab=castings" className="text-sm font-medium text-primary hover:underline">
+              <Link
+                href="/explore?tab=castings"
+                className="shrink-0 whitespace-nowrap text-sm font-medium text-primary hover:underline"
+              >
                 Все кастинги
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={() => setCastModalOpen(true)}
-                className="text-sm font-medium text-primary hover:underline"
+                className="shrink-0 whitespace-nowrap text-sm font-medium text-primary hover:underline"
               >
                 Все кастинги
               </button>
@@ -499,24 +512,29 @@ export function HomePublicBrowse({
 
       {showActors && (
       <section>
-        <div className="mb-3 flex min-w-0 flex-col gap-2 border-b border-border pb-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
-          <h2 className="min-w-0 shrink text-lg font-bold text-foreground sm:text-xl md:text-2xl">Актёры</h2>
+        <div className="mb-3 flex min-w-0 flex-row items-center justify-between gap-3 border-b border-border pb-3 sm:mb-4 sm:gap-x-4">
+          <h2 className="min-w-0 shrink truncate pr-1 text-lg font-bold text-foreground sm:text-xl md:max-w-none md:text-2xl">
+            Актёры
+          </h2>
           {actorsCatalogToolbar ? (
-            <div className="flex max-w-full min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto pb-0.5 sm:gap-3">
+            <div className="flex max-w-[min(100%,18rem)] min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] sm:max-w-none sm:gap-3">
               {actorsCatalogToolbar}
             </div>
           ) : showActorsSeeAllLink ? (
             loading ? (
-              <span className="text-sm text-muted-foreground">…</span>
+              <span className="shrink-0 text-sm text-muted-foreground">…</span>
             ) : canBrowseActors ? (
-              <Link href="/explore?tab=actors" className="text-sm font-medium text-primary hover:underline">
+              <Link
+                href="/explore?tab=actors"
+                className="shrink-0 whitespace-nowrap text-sm font-medium text-primary hover:underline"
+              >
                 Все актёры
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={() => setActorModalOpen(true)}
-                className="text-sm font-medium text-primary hover:underline"
+                className="shrink-0 whitespace-nowrap text-sm font-medium text-primary hover:underline"
               >
                 Все актёры
               </button>
@@ -528,10 +546,10 @@ export function HomePublicBrowse({
         ) : (
           <div
             className={cn(
-              "grid justify-items-stretch gap-3 sm:gap-5",
+              "grid justify-items-stretch gap-2 sm:gap-5",
               actorsCatalogGrid
                 ? "grid-cols-2 sm:grid-cols-3"
-                : "grid-cols-1 justify-items-center sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3 xl:grid-cols-4",
+                : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
               actorsCatalogGrid && "auto-rows-fr items-stretch",
             )}
           >

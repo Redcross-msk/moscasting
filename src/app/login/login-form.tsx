@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
+import { persistCookieConsent } from "@/lib/cookie-consent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function LoginForm() {
       setError("Неверный email, пароль или тип входа не совпадает с аккаунтом");
       return;
     }
+    persistCookieConsent();
     const s = await getSession();
     let next = callbackUrl;
     if (!next || next === "/" || next === "/login") {

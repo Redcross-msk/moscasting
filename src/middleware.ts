@@ -9,9 +9,14 @@ const explorePrefix = "/explore";
 
 export async function middleware(request: NextRequest) {
   const secret = process.env.AUTH_SECRET ?? "dev-only-change-me-32chars!!";
+  /** На HTTPS Auth.js ставит `__Secure-authjs.session-token`; без secureCookie getToken ищет другое имя → null и цикл / ↔ /explore */
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const secureCookie =
+    forwardedProto === "https" || (forwardedProto == null && request.nextUrl.protocol === "https:");
   const token = await getToken({
     req: request,
     secret,
+    secureCookie,
   });
 
   const { pathname } = request.nextUrl;
