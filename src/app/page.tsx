@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { auth } from "@/auth";
 import { professionalSkillLabel } from "@/lib/actor-form-constants";
 import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 function serializeActors(rows: Awaited<ReturnType<typeof getHomepageActors>>): SerializedHomeActor[] {
   return rows.map((a) => ({
@@ -14,7 +15,7 @@ function serializeActors(rows: Awaited<ReturnType<typeof getHomepageActors>>): S
     fullName: a.fullName,
     birthDate: a.birthDate.toISOString(),
     city: { name: a.city.name },
-    avatarUrl: a.media[0]?.publicUrl?.trim() ?? null,
+    avatarUrl: resolveUploadedMediaSrc(a.media[0]?.publicUrl, a.media[0]?.storageKey),
     heightCm: a.heightCm,
     weightKg: a.weightKg,
     professionalLabels: a.professionalSkillKeys.map(

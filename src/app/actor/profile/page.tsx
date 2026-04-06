@@ -58,6 +58,7 @@ export default async function ActorProfileCabinetPage() {
           id: m.id,
           kind: m.kind,
           publicUrl: m.publicUrl,
+          storageKey: m.storageKey,
           isAvatar: m.isAvatar,
           sortOrder: m.sortOrder,
           moderationStatus: m.moderationStatus,

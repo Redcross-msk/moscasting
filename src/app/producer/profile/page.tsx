@@ -74,6 +74,7 @@ export default async function ProducerProfileCabinetPage() {
       media={profile.media.map((m) => ({
         id: m.id,
         publicUrl: m.publicUrl,
+        storageKey: m.storageKey,
         isAvatar: m.isAvatar,
         moderationStatus: m.moderationStatus,
       }))}

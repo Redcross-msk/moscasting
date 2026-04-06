@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 import { cn } from "@/lib/utils";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 export type ProducerProfileViewMedia = {
   id: string;
   publicUrl: string | null;
+  storageKey?: string;
   isAvatar: boolean;
   moderationStatus?: ModerationStatus;
 };
@@ -98,8 +100,12 @@ export function ProducerProfileView({
   filmographyEntries = [],
   reviews = [],
 }: Props) {
-  const avatar = media.find((m) => m.isAvatar && m.publicUrl) ?? media.find((m) => m.publicUrl);
-  const gallery = media.filter((m) => m.publicUrl && !m.isAvatar);
+  const mediaSrc = (m: ProducerProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
+  const avatar =
+    media.find((m) => m.isAvatar && mediaSrc(m)) ?? media.find((m) => mediaSrc(m));
+  const gallery = media.filter(
+    (m) => !m.isAvatar && !!(m.publicUrl?.trim() || m.storageKey?.trim()) && mediaSrc(m),
+  );
 
   return (
     <div className="space-y-10 pb-10">
@@ -108,9 +114,9 @@ export function ProducerProfileView({
         <div className="px-5 py-6 sm:px-8 sm:py-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
             <div className="mx-auto h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted shadow-md ring-4 ring-background sm:mx-0 sm:h-36 sm:w-36">
-              {avatar?.publicUrl ? (
+              {avatar && mediaSrc(avatar) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatar.publicUrl} alt="" className="h-full w-full object-cover" />
+                <img src={mediaSrc(avatar)!} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center px-3 text-center text-xs text-muted-foreground">
                   Нет фото
@@ -161,7 +167,7 @@ export function ProducerProfileView({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={m.publicUrl!}
+                    src={mediaSrc(m)!}
                     alt=""
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                   />

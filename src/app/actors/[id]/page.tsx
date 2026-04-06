@@ -65,6 +65,7 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
         id: m.id,
         kind: m.kind,
         publicUrl: m.publicUrl,
+        storageKey: m.storageKey,
         isAvatar: m.isAvatar,
         sortOrder: m.sortOrder,
         moderationStatus: m.moderationStatus,

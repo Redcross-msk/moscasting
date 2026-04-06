@@ -1,89 +1,20 @@
 "use server";
 
-import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
-import { createStorageFromEnv } from "@/server/storage/local-placeholder-storage";
 
-const MAX_ACTOR_MEDIA = 10;
-const MAX_PRODUCER_MEDIA = 5;
-
-export async function addActorPortfolioMediaAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ACTOR") throw new Error("Forbidden");
-
-  const profile = await prisma.actorProfile.findUnique({
-    where: { userId: session.user.id },
-  });
-  if (!profile) throw new Error("Нет профиля");
-
-  const count = await prisma.mediaFile.count({ where: { actorProfileId: profile.id } });
-  if (count >= MAX_ACTOR_MEDIA) throw new Error(`Не более ${MAX_ACTOR_MEDIA} фото и видео`);
-
-  const kindRaw = String(formData.get("kind") ?? "PHOTO");
-  const kind = kindRaw === "VIDEO" ? MediaKind.VIDEO : MediaKind.PHOTO;
-
-  const storage = createStorageFromEnv();
-  const key = `actor/${profile.id}/${randomUUID()}`;
-  const { publicUrl } = await storage.putObject({
-    key,
-    body: Buffer.from([]),
-    contentType: kind === MediaKind.VIDEO ? "video/mp4" : "image/jpeg",
-  });
-
-  await prisma.mediaFile.create({
-    data: {
-      kind,
-      storageKey: key,
-      publicUrl: publicUrl ?? storage.getPublicUrl(key),
-      actorProfileId: profile.id,
-      sortOrder: count,
-      moderationStatus: ModerationStatus.PENDING,
-    },
-  });
-
-  revalidatePath("/actor/profile");
-  revalidatePath("/actor/profile/edit");
-  revalidatePath(`/actors/${profile.id}`);
-  revalidatePath("/explore");
+export async function addActorPortfolioMediaAction(_formData: FormData) {
+  throw new Error(
+    "Слоты без файла отключены. Загрузите фото через «Добавить фото» или видео через форму в редактировании профиля.",
+  );
 }
 
 export async function addProducerProfileMediaAction(_formData: FormData) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "PRODUCER") throw new Error("Forbidden");
-
-  const profile = await prisma.producerProfile.findUnique({
-    where: { userId: session.user.id },
-  });
-  if (!profile) throw new Error("Нет профиля");
-
-  const count = await prisma.mediaFile.count({ where: { producerProfileId: profile.id } });
-  if (count >= MAX_PRODUCER_MEDIA) throw new Error(`Не более ${MAX_PRODUCER_MEDIA} фото`);
-
-  const storage = createStorageFromEnv();
-  const key = `producer/${profile.id}/${randomUUID()}`;
-  const { publicUrl } = await storage.putObject({
-    key,
-    body: Buffer.from([]),
-    contentType: "image/jpeg",
-  });
-
-  await prisma.mediaFile.create({
-    data: {
-      kind: MediaKind.PHOTO,
-      storageKey: key,
-      publicUrl: publicUrl ?? storage.getPublicUrl(key),
-      producerProfileId: profile.id,
-      sortOrder: count,
-      moderationStatus: ModerationStatus.PENDING,
-    },
-  });
-
-  revalidatePath("/producer/profile");
-  revalidatePath("/producer/profile/edit");
-  revalidatePath("/explore");
+  throw new Error(
+    "Слоты без файла отключены. Загрузите фото через форму «Добавить фото» в редактировании профиля.",
+  );
 }
 
 export async function setActorAvatarMediaFormAction(formData: FormData) {

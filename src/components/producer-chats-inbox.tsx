@@ -106,7 +106,7 @@ export function ProducerChatsInbox({
           {directChatDisabledMessage}
         </div>
       ) : null}
-      <div className="grid min-h-[min(100dvh-12rem,720px)] gap-0 md:min-h-[480px] md:grid-cols-12 md:items-start md:gap-4">
+      <div className="grid min-h-0 gap-0 md:grid-cols-12 md:items-start md:gap-4 md:min-h-[480px]">
       <aside
         className={cn(
           "flex flex-col gap-4 border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4",
@@ -180,10 +180,16 @@ export function ProducerChatsInbox({
         </div>
       </aside>
 
-      <section className="flex min-h-[min(420px,65dvh)] flex-col md:col-span-8 md:min-h-[480px]">
+      <section
+        className={cn(
+          "flex flex-col md:col-span-8 md:min-h-[480px]",
+          !panel && "hidden md:flex",
+          panel && "flex min-h-[min(420px,70dvh)]",
+        )}
+      >
         {!panel ? (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
-            Выберите диалог в списке — отклик по кастингу или личный чат.
+          <div className="flex min-h-[480px] flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
+            Выберите диалог в списке слева — отклик по кастингу или личный чат.
           </div>
         ) : (
           <>

@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { ExploreCastingsPagination, ExploreCastingsToolbar } from "@/components/explore-castings-toolbar";
 import { ExploreRoleBar } from "@/components/explore-role-bar";
 import { professionalSkillLabel } from "@/lib/actor-form-constants";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 function parseCastingSort(v: string | undefined): PublicCastingSort {
   if (
@@ -81,7 +82,7 @@ function serializeActors(
     fullName: a.fullName,
     birthDate: a.birthDate.toISOString(),
     city: { name: a.city.name },
-    avatarUrl: a.media[0]?.publicUrl?.trim() ?? null,
+    avatarUrl: resolveUploadedMediaSrc(a.media[0]?.publicUrl, a.media[0]?.storageKey),
     heightCm: a.heightCm,
     weightKg: a.weightKg,
     professionalLabels: a.professionalSkillKeys.map(
@@ -306,8 +307,8 @@ export default async function ExplorePage({
 
   return (
     <div className="min-w-0 space-y-6 pb-8 sm:space-y-8 sm:pb-10">
-      <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto border-b border-border pb-3 [-webkit-overflow-scrolling:touch] sm:gap-3 md:gap-4">
-        <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 flex-col gap-3 border-b border-border pb-3 md:flex-row md:flex-nowrap md:items-center md:justify-between md:gap-4">
+        <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5 sm:gap-2 md:shrink-0 md:overflow-visible md:pb-0">
           <Link
             href={`${base}?tab=castings`}
             className={cn(
@@ -338,8 +339,12 @@ export default async function ExplorePage({
             Избранное
           </Link>
         </div>
-        <div className="min-w-0 flex-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] md:pb-0">
-          <ExploreRoleBar role={session.user.role} className="justify-end" />
+        <div className="-mx-1 min-w-0 w-full overflow-x-auto px-1 [-webkit-overflow-scrolling:touch] md:mx-0 md:w-auto md:max-w-[min(100%,52rem)] md:overflow-visible md:px-0">
+          <ExploreRoleBar
+            role={session.user.role}
+            omitFavoritesLink
+            className="justify-start md:justify-end"
+          />
         </div>
       </div>
 

@@ -106,7 +106,7 @@ export function ActorChatsInbox({
           {directChatDisabledMessage}
         </div>
       ) : null}
-      <div className="grid min-h-[min(100dvh-12rem,720px)] gap-0 md:min-h-[480px] md:grid-cols-12 md:items-start md:gap-4">
+      <div className="grid min-h-0 gap-0 md:grid-cols-12 md:items-start md:gap-4 md:min-h-[480px]">
       <aside
         className={cn(
           "flex flex-col gap-4 border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4",
@@ -120,20 +120,22 @@ export function ActorChatsInbox({
           {direct.length === 0 ? (
             <p className="text-sm text-muted-foreground">Нет личных диалогов</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="flex flex-col gap-2">
               {direct.map((d) => (
                 <li key={d.threadId}>
                   <button
                     type="button"
                     onClick={() => loadDirect(d.threadId)}
                     className={cn(
-                      "w-full rounded-lg px-2 py-2.5 text-left text-sm transition hover:bg-background/80",
-                      panel?.kind === "direct" && panel.threadId === d.threadId && "bg-background font-medium shadow-sm ring-1 ring-primary/25",
+                      "w-full rounded-lg border border-border/80 bg-background/90 px-3 py-3 text-left text-sm shadow-sm transition hover:bg-muted/40 active:bg-muted/60",
+                      panel?.kind === "direct" && panel.threadId === d.threadId && "border-primary/40 bg-primary/5 font-medium ring-2 ring-primary/20",
                     )}
                   >
-                    <span className="block font-medium">{d.producerLabel}</span>
+                    <span className="block font-semibold leading-snug">{d.producerLabel}</span>
                     {d.preview ? (
-                      <span className="line-clamp-2 text-xs text-muted-foreground">{d.preview}</span>
+                      <span className="mt-2 block border-t border-border/50 pt-2 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {d.preview}
+                      </span>
                     ) : null}
                   </button>
                 </li>
@@ -149,23 +151,25 @@ export function ActorChatsInbox({
           {byCasting.length === 0 ? (
             <p className="text-sm text-muted-foreground">Пока нет чатов по откликам</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="flex flex-col gap-2.5">
               {byCasting.map((c) => (
                 <li key={c.castingId}>
                   <button
                     type="button"
                     onClick={() => loadApp(c.chatId)}
                     className={cn(
-                      "w-full rounded-lg px-2 py-2.5 text-left text-sm transition hover:bg-muted/60",
+                      "w-full rounded-lg border border-border bg-background/90 px-3 py-3 text-left text-sm shadow-sm transition hover:bg-muted/40 active:bg-muted/60",
                       panel?.kind === "application" &&
                         panel.chatId === c.chatId &&
-                        "bg-primary/10 font-medium shadow-sm ring-1 ring-primary/30",
+                        "border-primary/40 bg-primary/5 font-medium ring-2 ring-primary/20",
                     )}
                   >
-                    <span className="block font-medium">{c.castingTitle}</span>
-                    <span className="text-xs text-muted-foreground">{c.producerLabel}</span>
+                    <span className="block font-semibold leading-snug">{c.castingTitle}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{c.producerLabel}</span>
                     {c.preview ? (
-                      <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{c.preview}</span>
+                      <span className="mt-2 block border-t border-border/50 pt-2 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {c.preview}
+                      </span>
                     ) : null}
                   </button>
                 </li>
@@ -175,10 +179,16 @@ export function ActorChatsInbox({
         </div>
       </aside>
 
-      <section className="flex min-h-[min(420px,65dvh)] flex-col md:col-span-8 md:min-h-[480px]">
+      <section
+        className={cn(
+          "flex flex-col md:col-span-8 md:min-h-[480px]",
+          !panel && "hidden md:flex",
+          panel && "flex min-h-[min(420px,70dvh)]",
+        )}
+      >
         {!panel ? (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
-            Выберите кастинг или личный диалог в списке выше.
+          <div className="flex min-h-[480px] flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
+            Выберите кастинг или личный диалог в списке слева.
           </div>
         ) : (
           <>

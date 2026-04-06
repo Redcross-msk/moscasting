@@ -12,7 +12,7 @@ export const actorProfileCatalogInclude = {
     },
     orderBy: [{ isAvatar: "desc" as const }, { sortOrder: "asc" as const }],
     take: 1,
-    select: { publicUrl: true },
+    select: { publicUrl: true, storageKey: true },
   },
 } satisfies Prisma.ActorProfileInclude;
 

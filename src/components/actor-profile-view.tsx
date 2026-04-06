@@ -23,11 +23,13 @@ import {
 } from "@/lib/actor-form-constants";
 import { availabilityLabel, bodyTypeLabel, genderLabel } from "@/lib/profile-labels";
 import { ProducerInviteToProject } from "@/components/producer-invite-to-project";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 export type ActorProfileViewMedia = {
   id: string;
   kind: MediaKind;
   publicUrl: string | null;
+  storageKey?: string;
   isAvatar: boolean;
   sortOrder?: number;
   moderationStatus?: ModerationStatus;
@@ -71,15 +73,25 @@ export function ActorProfileView({
   showCatalogBack,
   producerInvite,
 }: Props) {
+  const mediaSrc = (m: ActorProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
+
   const avatar =
-    media.find((m) => m.kind === "PHOTO" && m.isAvatar && m.publicUrl) ??
-    media.find((m) => m.kind === "PHOTO" && m.publicUrl);
+    media.find((m) => m.kind === "PHOTO" && m.isAvatar && mediaSrc(m)) ??
+    media.find((m) => m.kind === "PHOTO" && mediaSrc(m));
 
   const gridPhotos = media
-    .filter((m) => m.kind === "PHOTO" && m.publicUrl && !m.isAvatar)
+    .filter(
+      (m) =>
+        m.kind === "PHOTO" &&
+        !m.isAvatar &&
+        !!(m.publicUrl?.trim() || m.storageKey?.trim()) &&
+        mediaSrc(m),
+    )
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
-  const videos = media.filter((m) => m.kind === "VIDEO" && m.publicUrl);
+  const videos = media.filter(
+    (m) => m.kind === "VIDEO" && !!(m.publicUrl?.trim() || m.storageKey?.trim()) && mediaSrc(m),
+  );
 
   const langLabels = profile.languages
     .map((slug) => languageLabel[slug as keyof typeof languageLabel] ?? slug)
@@ -113,9 +125,9 @@ export function ActorProfileView({
       <header className="space-y-4">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
           <div className="mx-auto h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted shadow-sm sm:mx-0 sm:h-36 sm:w-36">
-            {avatar?.publicUrl ? (
+            {avatar && mediaSrc(avatar) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatar.publicUrl} alt="" className="h-full w-full object-cover" />
+              <img src={mediaSrc(avatar)!} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
                 Нет фото
@@ -266,7 +278,7 @@ export function ActorProfileView({
                     <div key={m.id} className="aspect-square overflow-hidden bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={m.publicUrl!}
+                        src={mediaSrc(m)!}
                         alt=""
                         className="h-full w-full object-cover transition duration-300 hover:opacity-95"
                       />
@@ -299,7 +311,7 @@ export function ActorProfileView({
                       key={m.id}
                       className="overflow-hidden rounded-xl border border-border bg-black shadow-md"
                     >
-                      <video src={m.publicUrl!} controls className="aspect-video w-full" preload="metadata" />
+                      <video src={mediaSrc(m)!} controls className="aspect-video w-full" preload="metadata" />
                     </div>
                   ))}
                 </div>

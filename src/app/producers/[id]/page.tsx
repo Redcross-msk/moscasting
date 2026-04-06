@@ -24,6 +24,7 @@ export default async function ProducerPublicPage({ params }: { params: Promise<{
       media={data.media.map((m) => ({
         id: m.id,
         publicUrl: m.publicUrl,
+        storageKey: m.storageKey,
         isAvatar: m.isAvatar,
       }))}
       filmographyEntries={data.filmographyEntries.map((e) => ({

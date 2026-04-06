@@ -4,7 +4,14 @@ import { cn } from "@/lib/utils";
 
 type Role = "ACTOR" | "PRODUCER" | "ADMIN" | string;
 
-export function ExploreRoleBar({ role, className }: { role: Role; className?: string }) {
+type ExploreRoleBarProps = {
+  role: Role;
+  className?: string;
+  /** На /explore вкладка «Избранное» уже есть — не дублировать кнопку */
+  omitFavoritesLink?: boolean;
+};
+
+export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRoleBarProps) {
   const barBtn =
     "h-8 shrink-0 whitespace-nowrap px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm";
 
@@ -16,9 +23,11 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
           className,
         )}
       >
-        <Button variant="outline" size="sm" className={barBtn} asChild>
-          <Link href="/explore?tab=favorites">Избранное</Link>
-        </Button>
+        {!omitFavoritesLink ? (
+          <Button variant="outline" size="sm" className={barBtn} asChild>
+            <Link href="/explore?tab=favorites">Избранное</Link>
+          </Button>
+        ) : null}
         <Button variant="outline" size="sm" className={barBtn} asChild>
           <Link href="/admin">Админка</Link>
         </Button>
@@ -43,9 +52,11 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
         <Button variant="outline" size="sm" className={barBtn} asChild>
           <Link href="/actor/chats">Чаты</Link>
         </Button>
-        <Button variant="outline" size="sm" className={barBtn} asChild>
-          <Link href="/explore?tab=favorites">Избранное</Link>
-        </Button>
+        {!omitFavoritesLink ? (
+          <Button variant="outline" size="sm" className={barBtn} asChild>
+            <Link href="/explore?tab=favorites">Избранное</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -70,9 +81,11 @@ export function ExploreRoleBar({ role, className }: { role: Role; className?: st
         <Button variant="outline" size="sm" className={barBtn} asChild>
           <Link href="/producer/chats">Чаты</Link>
         </Button>
-        <Button variant="outline" size="sm" className={barBtn} asChild>
-          <Link href="/explore?tab=favorites">Избранное</Link>
-        </Button>
+        {!omitFavoritesLink ? (
+          <Button variant="outline" size="sm" className={barBtn} asChild>
+            <Link href="/explore?tab=favorites">Избранное</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }
