@@ -96,7 +96,7 @@ export async function getHomepageActors(citySlug: string): Promise<HomeActorRow[
   return ordered.slice(0, 6);
 }
 
-export async function listCastingsForHomepageAdminPicker(citySlug?: string) {
+export async function listCastingsForHomepageAdminPicker(citySlug?: string, search?: string) {
   const where: Prisma.CastingWhereInput = {
     deletedAt: null,
     status: CastingStatus.ACTIVE,
@@ -108,6 +108,13 @@ export async function listCastingsForHomepageAdminPicker(citySlug?: string) {
   };
   if (citySlug) {
     where.city = { slug: citySlug };
+  }
+  const s = search?.trim();
+  if (s) {
+    where.OR = [
+      { title: { contains: s, mode: "insensitive" } },
+      { description: { contains: s, mode: "insensitive" } },
+    ];
   }
 
   return prisma.casting.findMany({
@@ -121,7 +128,7 @@ export async function listCastingsForHomepageAdminPicker(citySlug?: string) {
   });
 }
 
-export async function listActorsForHomepageAdminPicker(citySlug?: string) {
+export async function listActorsForHomepageAdminPicker(citySlug?: string, search?: string) {
   const where: Prisma.ActorProfileWhereInput = {
     deletedAt: null,
     isBlockedByAdmin: false,
@@ -130,6 +137,10 @@ export async function listActorsForHomepageAdminPicker(citySlug?: string) {
   };
   if (citySlug) {
     where.city = { slug: citySlug };
+  }
+  const s = search?.trim();
+  if (s) {
+    where.fullName = { contains: s, mode: "insensitive" };
   }
 
   return prisma.actorProfile.findMany({

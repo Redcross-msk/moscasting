@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { ACTORS_CATALOG_PAGE_SIZE } from "@/lib/explore-actors-catalog";
 
 type SortKey = "new" | "young" | "old";
 
@@ -313,5 +312,3 @@ export function ExploreActorsPagination({
     </nav>
   );
 }
-
-export { ACTORS_CATALOG_PAGE_SIZE as PAGE_SIZE };

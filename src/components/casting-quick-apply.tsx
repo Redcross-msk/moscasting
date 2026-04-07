@@ -116,7 +116,7 @@ export function CastingQuickApply({
           size={isPageColumn ? "default" : "default"}
           className={cn(
             !isPageColumn && !isCatalogSide && "w-full sm:w-auto",
-            isCatalogSide && "w-full",
+            isCatalogSide && "h-11 w-full rounded-xl font-semibold shadow-sm",
             isPageColumn && "h-11 w-full text-base",
           )}
           asChild
@@ -141,7 +141,7 @@ export function CastingQuickApply({
           className={cn(
             !isPageColumn && !isCatalogSide && "w-full",
             variant === "detail" && "sm:w-auto",
-            isCatalogSide && "w-full",
+            isCatalogSide && "h-11 w-full rounded-xl text-base font-semibold shadow-sm",
             isPageColumn && "h-11 w-full text-base font-semibold",
           )}
           onClick={openApplyFlow}

@@ -125,7 +125,7 @@ export async function registerUser(_prev: RegisterState, formData: FormData): Pr
             bio: actorParsed.data.bio,
             availability: actorParsed.data.availability ?? AvailabilityStatus.AVAILABLE,
             cityId: city.id,
-            moderationStatus: ModerationStatus.PENDING,
+            moderationStatus: ModerationStatus.APPROVED,
           },
         });
       });
@@ -155,7 +155,7 @@ export async function registerUser(_prev: RegisterState, formData: FormData): Pr
             companyName: prodParsed.data.companyName,
             positionTitle: prodParsed.data.positionTitle,
             filmography: prodParsed.data.filmography,
-            moderationStatus: ModerationStatus.PENDING,
+            moderationStatus: ModerationStatus.APPROVED,
           },
         });
       });

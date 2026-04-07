@@ -6,8 +6,12 @@ import { CastingStatus, ModerationStatus, ReportStatus } from "@prisma/client";
 import {
   setUserSuspended,
   setActorBlocked,
+  setProducerBlocked,
   setCastingBlocked,
   logAdminAction,
+  deleteUserCascade,
+  adminSoftDeleteCasting,
+  adminUpdateCastingBasics,
 } from "@/server/services/admin.service";
 import {
   replaceHomepageFeaturedActors,
@@ -16,7 +20,6 @@ import {
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { updateReportStatus } from "@/server/services/report.service";
-import { approveReview, hideReview } from "@/server/services/review.service";
 
 async function requireAdmin() {
   const session = await auth();
@@ -31,11 +34,25 @@ export async function suspendUserAction(userId: string, suspended: boolean) {
   revalidatePath("/admin/users");
 }
 
+export async function deleteUserAction(userId: string) {
+  const admin = await requireAdmin();
+  await deleteUserCascade(userId);
+  await logAdminAction(admin.id, "user.delete", "User", userId);
+  revalidatePath("/admin/users");
+}
+
 export async function blockActorProfileAction(profileId: string, blocked: boolean) {
   const admin = await requireAdmin();
   await setActorBlocked(profileId, blocked);
   await logAdminAction(admin.id, blocked ? "actor.block" : "actor.unblock", "ActorProfile", profileId);
-  revalidatePath("/admin/actors");
+  revalidatePath("/admin/users");
+}
+
+export async function blockProducerProfileAction(profileId: string, blocked: boolean) {
+  const admin = await requireAdmin();
+  await setProducerBlocked(profileId, blocked);
+  await logAdminAction(admin.id, blocked ? "producer.block" : "producer.unblock", "ProducerProfile", profileId);
+  revalidatePath("/admin/users");
 }
 
 export async function blockCastingAction(castingId: string, blocked: boolean) {
@@ -44,6 +61,8 @@ export async function blockCastingAction(castingId: string, blocked: boolean) {
   await logAdminAction(admin.id, blocked ? "casting.block" : "casting.unblock", "Casting", castingId);
   revalidatePath("/admin/castings");
   revalidatePath("/castings");
+  revalidatePath("/explore");
+  revalidatePath("/");
 }
 
 export async function updateReportAction(reportId: string, status: ReportStatus, adminNotes?: string) {
@@ -53,18 +72,27 @@ export async function updateReportAction(reportId: string, status: ReportStatus,
   revalidatePath("/admin/reports");
 }
 
-export async function approveReviewAction(reviewId: string) {
+export async function adminDeleteCastingAction(castingId: string) {
   const admin = await requireAdmin();
-  await approveReview(reviewId);
-  await logAdminAction(admin.id, "review.approve", "Review", reviewId);
-  revalidatePath("/admin/reviews");
+  await adminSoftDeleteCasting(castingId);
+  await logAdminAction(admin.id, "casting.delete", "Casting", castingId);
+  revalidatePath("/admin/castings");
+  revalidatePath("/explore");
+  revalidatePath("/");
 }
 
-export async function hideReviewAction(reviewId: string) {
+export async function adminUpdateCastingBasicsAction(formData: FormData) {
   const admin = await requireAdmin();
-  await hideReview(reviewId);
-  await logAdminAction(admin.id, "review.hide", "Review", reviewId);
-  revalidatePath("/admin/reviews");
+  const id = String(formData.get("castingId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  if (!id || title.length < 2 || description.length < 5) throw new Error("Некорректные данные");
+  await adminUpdateCastingBasics(id, { title, description });
+  await logAdminAction(admin.id, "casting.edit", "Casting", id);
+  revalidatePath("/admin/castings");
+  revalidatePath(`/castings/${id}`);
+  revalidatePath("/explore");
+  revalidatePath("/");
 }
 
 export async function saveHomepageFeaturedCastingsAction(formData: FormData) {

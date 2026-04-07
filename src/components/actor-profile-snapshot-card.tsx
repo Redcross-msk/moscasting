@@ -6,7 +6,7 @@ export function ActorProfileSnapshotCard({ data }: { data: ActorProfileMessagePa
   return (
     <Link
       href={`/actors/${data.actorProfileId}`}
-      className="block rounded-lg border-2 border-primary/25 bg-primary/[0.04] p-3 transition-colors hover:border-primary/50 hover:bg-primary/[0.07]"
+      className="block rounded-lg border border-border bg-card p-3 text-card-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/30"
     >
       <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Профиль актёра</p>
       <p className="mt-1 text-sm font-semibold text-foreground">{data.fullName}</p>

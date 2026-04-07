@@ -17,12 +17,15 @@ export function ChatReviewSection({
 }) {
   const canActorReview =
     applicationStatus === ApplicationStatus.INVITED || applicationStatus === ApplicationStatus.CAST_PASSED;
-  const actorToProducer = reviews.find((r) => r.direction === ReviewDirection.ACTOR_TO_PRODUCER);
 
   if (role === "ACTOR" && canActorReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Отзыв</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Отзывы</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Оцените кастинг-директора — отзыв появится в его профиле. Продюсер может независимо оставить отзыв о вас в своём
+          чате.
+        </p>
         <ReviewBlock
           applicationId={applicationId}
           direction={ReviewDirection.ACTOR_TO_PRODUCER}
@@ -43,10 +46,14 @@ export function ChatReviewSection({
     );
   }
 
-  if (role === "PRODUCER" && canActorReview && actorToProducer) {
+  if (role === "PRODUCER" && canActorReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Отзыв об актёре</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Доступно после приглашения в проект. Отзыв актёра о вас и ваш отзыв об актёре независимы — можно оставить в
+          любом порядке.
+        </p>
         <ReviewBlock
           applicationId={applicationId}
           direction={ReviewDirection.PRODUCER_TO_ACTOR}

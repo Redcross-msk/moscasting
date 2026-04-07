@@ -7,13 +7,22 @@ import { env } from "@/lib/env";
 import { saveHomepageFeaturedActorsAction, saveHomepageFeaturedCastingsAction } from "@/features/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default async function AdminHomepagePage() {
+export default async function AdminHomepagePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ castingQ?: string; actorQ?: string }>;
+}) {
+  const sp = await searchParams;
+  const castingQ = sp.castingQ?.trim() ?? "";
+  const actorQ = sp.actorQ?.trim() ?? "";
+
   const citySlug = env.NEXT_PUBLIC_DEFAULT_CITY_SLUG;
   const [pickCastings, pickActors, { castingSlots, actorSlots }] = await Promise.all([
-    listCastingsForHomepageAdminPicker(citySlug),
-    listActorsForHomepageAdminPicker(citySlug),
+    listCastingsForHomepageAdminPicker(citySlug, castingQ || undefined),
+    listActorsForHomepageAdminPicker(citySlug, actorQ || undefined),
     getHomepageFeaturedSlotsAdmin(),
   ]);
 
@@ -35,6 +44,18 @@ export default async function AdminHomepagePage() {
           заполняются автоматически из публичного каталога (Москва).
         </p>
       </div>
+
+      <form method="get" className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="min-w-[200px] flex-1 space-y-2">
+          <Label htmlFor="castingQ">Поиск кастингов для выбора</Label>
+          <Input id="castingQ" name="castingQ" placeholder="Название…" defaultValue={castingQ} />
+        </div>
+        <div className="min-w-[200px] flex-1 space-y-2">
+          <Label htmlFor="actorQ">Поиск актёров для выбора</Label>
+          <Input id="actorQ" name="actorQ" placeholder="Имя…" defaultValue={actorQ} />
+        </div>
+        <Button type="submit">Найти</Button>
+      </form>
 
       <Card>
         <CardHeader>

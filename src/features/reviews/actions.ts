@@ -28,7 +28,6 @@ export async function createReviewAction(applicationId: string, stars: number, t
   revalidatePath("/actor/applications");
   revalidatePath("/producer/castings");
   revalidatePath("/producer/profile");
-  revalidatePath("/admin/reviews");
   revalidatePath("/producer/chats");
   revalidatePath("/actor/chats");
   revalidatePath("/explore");

@@ -21,7 +21,7 @@ export function BlockCastingButton({ castingId, blocked }: { castingId: string; 
         });
       }}
     >
-      {blocked ? "Разблокировать" : "Блок"}
+      {blocked ? "Разблокировать" : "Заблокировать"}
     </Button>
   );
 }

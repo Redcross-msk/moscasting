@@ -1,27 +1,15 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import {
-  listUsers,
-  listPendingActorRegistrations,
-  listPendingProducerRegistrations,
-} from "@/server/services/admin.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { SuspendUserButton } from "./suspend-button";
 import { BlockActorButton } from "../actors/block-button";
-import {
-  approveActorProfileModerationFormAction,
-  approveProducerProfileModerationFormAction,
-  rejectActorProfileModerationAction,
-  rejectProducerProfileModerationAction,
-} from "@/features/admin/moderation-actions";
+import { BlockProducerButton } from "./block-producer-button";
+import { DeleteUserButton } from "./delete-user-button";
 
 const tabs = [
-  { id: "users", label: "Аккаунты" },
-  { id: "registrations", label: "Регистрации (ожидают)" },
   { id: "actors", label: "Актёры" },
   { id: "producers", label: "Продюсеры" },
 ] as const;
@@ -34,19 +22,21 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const sp = await searchParams;
-  const tab = (tabs.find((t) => t.id === sp.tab)?.id ?? "users") as TabId;
+  const tab = (tabs.find((t) => t.id === sp.tab)?.id ?? "actors") as TabId;
 
-  const [users, pendingActors, pendingProducers, allActors, allProducers] = await Promise.all([
-    listUsers(),
-    listPendingActorRegistrations(),
-    listPendingProducerRegistrations(),
+  const [allActors, allProducers] = await Promise.all([
     prisma.actorProfile.findMany({
+      where: { user: { role: UserRole.ACTOR } },
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { email: true } }, city: true },
+      include: {
+        user: { select: { id: true, email: true, status: true } },
+        city: true,
+      },
     }),
     prisma.producerProfile.findMany({
+      where: { user: { role: UserRole.PRODUCER } },
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { email: true } } },
+      include: { user: { select: { id: true, email: true, status: true } } },
     }),
   ]);
 
@@ -55,7 +45,7 @@ export default async function AdminUsersPage({
       <div>
         <h1 className="text-2xl font-bold">Пользователи</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Аккаунты, регистрации актёров и кастинг-директоров, списки профилей.
+          Актёры и продюсеры. Модерация регистрации не требуется — блокировка аккаунта, профиля или полное удаление.
         </p>
       </div>
 
@@ -67,123 +57,27 @@ export default async function AdminUsersPage({
         ))}
       </div>
 
-      {tab === "users" && (
-        <div className="space-y-2">
-          {users.map((u) => (
-            <Card key={u.id}>
-              <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4 text-sm">
-                <div>
-                  <p className="font-medium">{u.email}</p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    <Badge>{u.role}</Badge>
-                    <Badge variant="outline">{u.status}</Badge>
-                    {u.actorProfile && (
-                      <span className="text-muted-foreground">Актёр: {u.actorProfile.fullName}</span>
-                    )}
-                    {u.producerProfile && (
-                      <span className="text-muted-foreground">Продюсер: {u.producerProfile.companyName}</span>
-                    )}
-                  </div>
-                </div>
-                {u.role !== UserRole.ADMIN && <SuspendUserButton userId={u.id} suspended={u.status === "SUSPENDED"} />}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {tab === "registrations" && (
-        <div className="space-y-10">
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Актёры ({pendingActors.length})</h2>
-            <div className="space-y-3">
-              {pendingActors.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Нет заявок.</p>
-              ) : (
-                pendingActors.map((a) => (
-                  <Card key={a.id}>
-                    <CardContent className="space-y-3 py-4">
-                      <div>
-                        <Link href={`/actors/${a.id}`} className="font-medium hover:underline">
-                          {a.fullName}
-                        </Link>
-                        <p className="text-sm text-muted-foreground">{a.user.email}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <form action={approveActorProfileModerationFormAction}>
-                          <input type="hidden" name="profileId" value={a.id} />
-                          <Button type="submit" size="sm">
-                            Одобрить
-                          </Button>
-                        </form>
-                        <form action={rejectActorProfileModerationAction} className="min-w-[240px] flex-1 space-y-2">
-                          <input type="hidden" name="profileId" value={a.id} />
-                          <Textarea name="comment" required rows={2} placeholder="Причина отклонения" />
-                          <Button type="submit" size="sm" variant="outline">
-                            Отклонить
-                          </Button>
-                        </form>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Кастинг-директора ({pendingProducers.length})</h2>
-            <div className="space-y-3">
-              {pendingProducers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Нет заявок.</p>
-              ) : (
-                pendingProducers.map((p) => (
-                  <Card key={p.id}>
-                    <CardContent className="space-y-3 py-4">
-                      <div>
-                        <p className="font-medium">{p.companyName}</p>
-                        <p className="text-sm text-muted-foreground">{p.user.email}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <form action={approveProducerProfileModerationFormAction}>
-                          <input type="hidden" name="profileId" value={p.id} />
-                          <Button type="submit" size="sm">
-                            Одобрить
-                          </Button>
-                        </form>
-                        <form action={rejectProducerProfileModerationAction} className="min-w-[240px] flex-1 space-y-2">
-                          <input type="hidden" name="profileId" value={p.id} />
-                          <Textarea name="comment" required rows={2} placeholder="Причина отклонения" />
-                          <Button type="submit" size="sm" variant="outline">
-                            Отклонить
-                          </Button>
-                        </form>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
-      )}
-
       {tab === "actors" && (
         <div className="space-y-2">
           {allActors.map((a) => (
             <Card key={a.id}>
-              <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4 text-sm">
+              <CardContent className="flex flex-col gap-3 py-4 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div>
                   <Link href={`/actors/${a.id}`} className="font-medium hover:underline">
                     {a.fullName}
                   </Link>
                   <p className="text-muted-foreground">{a.user.email}</p>
                   <div className="mt-1 flex flex-wrap gap-2">
+                    <Badge variant="outline">{a.user.status}</Badge>
                     <Badge variant="outline">{a.moderationStatus}</Badge>
-                    <span>{a.city.name}</span>
+                    <span className="text-muted-foreground">{a.city.name}</span>
                   </div>
                 </div>
-                <BlockActorButton profileId={a.id} blocked={a.isBlockedByAdmin} />
+                <div className="flex flex-wrap gap-2">
+                  <SuspendUserButton userId={a.user.id} suspended={a.user.status === "SUSPENDED"} />
+                  <BlockActorButton profileId={a.id} blocked={a.isBlockedByAdmin} />
+                  <DeleteUserButton userId={a.user.id} />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -194,14 +88,22 @@ export default async function AdminUsersPage({
         <div className="space-y-2">
           {allProducers.map((p) => (
             <Card key={p.id}>
-              <CardContent className="py-4 text-sm">
-                <Link href={`/producers/${p.id}`} className="font-medium hover:underline">
-                  {p.companyName}
-                </Link>
-                <p className="text-muted-foreground">{p.user.email}</p>
-                <Badge className="mt-2" variant="outline">
-                  {p.moderationStatus}
-                </Badge>
+              <CardContent className="flex flex-col gap-3 py-4 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div>
+                  <Link href={`/producers/${p.id}`} className="font-medium hover:underline">
+                    {p.companyName}
+                  </Link>
+                  <p className="text-muted-foreground">{p.user.email}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Badge variant="outline">{p.user.status}</Badge>
+                    <Badge variant="outline">{p.moderationStatus}</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <SuspendUserButton userId={p.user.id} suspended={p.user.status === "SUSPENDED"} />
+                  <BlockProducerButton profileId={p.id} blocked={p.isBlockedByAdmin} />
+                  <DeleteUserButton userId={p.user.id} />
+                </div>
               </CardContent>
             </Card>
           ))}

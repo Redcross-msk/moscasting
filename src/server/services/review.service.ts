@@ -46,15 +46,6 @@ export async function createReview(params: {
     if (!producerCanReviewBase) {
       throw new Error("Отзыв об актёре недоступен для этого отклика");
     }
-    const actorReview = await prisma.review.findFirst({
-      where: {
-        applicationId: app.id,
-        direction: ReviewDirection.ACTOR_TO_PRODUCER,
-      },
-    });
-    if (!actorReview) {
-      throw new Error("Сначала дождитесь отзыва актёра о вас");
-    }
     direction = ReviewDirection.PRODUCER_TO_ACTOR;
     subjectId = actorUserId;
   } else {

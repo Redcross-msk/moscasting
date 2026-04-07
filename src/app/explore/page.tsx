@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { CastingCategory, CastingStatus, Gender, ModerationStatus } from "@prisma/client";
 import { auth } from "@/auth";
@@ -8,7 +9,7 @@ import {
 } from "@/components/home-public-browse";
 import { ExploreActorsPagination, ExploreActorsToolbar } from "@/components/explore-actors-toolbar";
 import {
-  ACTORS_CATALOG_PAGE_SIZE as PAGE_SIZE,
+  resolveActorsCatalogPageSize,
   CASTINGS_CATALOG_PAGE_SIZE as CAST_PAGE_SIZE,
 } from "@/lib/explore-actors-catalog";
 import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
@@ -113,6 +114,9 @@ export default async function ExplorePage({
 }) {
   const session = await auth();
   if (!session) redirect("/");
+
+  const h = await headers();
+  const actorsPageSize = resolveActorsCatalogPageSize(h.get("user-agent"));
 
   const sp = await searchParams;
   const tab =
@@ -274,7 +278,7 @@ export default async function ExplorePage({
 
   if (tab === "actors") {
     actorTotal = await countPublicActors(actorFilterBase);
-    actorTotalPages = Math.max(1, Math.ceil(actorTotal / PAGE_SIZE));
+    actorTotalPages = Math.max(1, Math.ceil(actorTotal / actorsPageSize));
     let page = actorPage;
     if (page > actorTotalPages) {
       page = actorTotalPages;
@@ -282,8 +286,8 @@ export default async function ExplorePage({
     actors = await listPublicActors({
       ...actorFilterBase,
       sort: aSort,
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
+      take: actorsPageSize,
+      skip: (page - 1) * actorsPageSize,
     });
     if (actorPage !== page && actorTotal > 0) {
       const q = new URLSearchParams();

@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UserAccountMenu } from "@/components/user-account-menu";
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "МОСКАСТИНГ";
@@ -24,11 +32,26 @@ export function SiteHeader() {
             <UserAccountMenu />
           ) : (
             <>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Вход
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    Вход
+                    <ChevronDown className="h-4 w-4 opacity-60" aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <Link href="/login">Войти</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/obuchenie">Обучение</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/portfolio">Портфолио</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Link href="/register">
                 <Button size="sm">Регистрация</Button>
               </Link>

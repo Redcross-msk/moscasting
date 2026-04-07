@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { professionalSkillLabel } from "@/lib/actor-form-constants";
 import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
+import { HomeServicesBanner } from "@/components/home-services-banner";
 
 function serializeActors(rows: Awaited<ReturnType<typeof getHomepageActors>>): SerializedHomeActor[] {
   return rows.map((a) => ({
@@ -35,11 +36,16 @@ export default async function HomePage() {
     <div className="min-w-0 space-y-8 pb-10 sm:space-y-10 sm:pb-12">
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/[0.06] to-background px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
         <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl md:text-4xl">МОСКАСТИНГ</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
-          Кастинги и актёры в Москве: актёры первого и второго плана, актёры главных и эпизодических ролей, актёры
-          массовки и групповки, а также каскадёры и дублёры! Ниже предоставлены все актуальные кастинги в городе Москве
-          и Московской области — ТВ, клипов, шоу, сериалов, любительского и профессионального кино и интернет-платформ!
-        </p>
+        <div className="mt-3 max-w-3xl space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
+          <p>
+            Кастинги и актёры Москвы: актёры первого и второго плана, актёры главных и эпизодических ролей, актёры
+            массовки и групповки, а также каскадёры и дублёры.
+          </p>
+          <p>
+            Ниже предоставлены все актуальные кастинги в городе Москве и Московской области — ТВ, клипов, шоу,
+            сериалов, любительского и профессионального кино и интернет-платформ!
+          </p>
+        </div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link href="/register/actor">
             <Button size="lg" className="h-11 w-full min-w-[220px] px-6 sm:w-auto">
@@ -58,6 +64,7 @@ export default async function HomePage() {
         castings={castings.map((c) => serializeCastingForBrowse(c))}
         actors={serializeActors(actors)}
         activeTab="both"
+        betweenCastingsAndActors={<HomeServicesBanner />}
       />
     </div>
   );

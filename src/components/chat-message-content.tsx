@@ -16,7 +16,7 @@ export function ChatMessageContent({ body, payload }: { body: string; payload: u
       {actorCard ? <ActorProfileSnapshotCard data={actorCard} /> : null}
       {invite ? <CastingInviteMessageCard data={invite} /> : null}
       {attach ? (
-        <div className="overflow-hidden rounded-lg border border-border/80 bg-background/50">
+        <div className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
           {attach.attachmentKind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={attach.url} alt="" className="max-h-64 w-full object-contain" />

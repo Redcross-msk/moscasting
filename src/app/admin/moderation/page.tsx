@@ -17,8 +17,7 @@ export default async function AdminModerationPage() {
       <div>
         <h1 className="text-2xl font-bold">Модерация кастингов</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Здесь только заявки на публикацию кастингов. Регистрации профилей — в разделе «Пользователи», отзывы — в
-          «Отзывы».
+          Только заявки на публикацию кастингов. Регистрация актёров и продюсеров проходит без модерации.
         </p>
       </div>
 

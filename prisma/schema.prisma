@@ -178,6 +178,17 @@ model User {
   favoriteActors    FavoriteActor[]
   favoriteCastings  FavoriteCasting[]
   directThreadMessages DirectThreadMessage[] @relation("DirectThreadSender")
+  portalVisits      PortalVisit[]
+}
+
+/// Хит посещения портала (гость или авторизованный) — для обзора в админке.
+model PortalVisit {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model City {
@@ -629,5 +640,80 @@ model AdminActivityLog {
   createdAt  DateTime @default(now())
 
   @@index([adminId])
+  @@index([createdAt])
+}
+
+/// 8 или 16 часов актёрского мастерства.
+enum CourseSlotType {
+  EIGHT_HOURS
+  SIXTEEN_HOURS
+}
+
+enum ServiceLeadStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+/// Дата (или первый день) курса; для 16 ч — secondDay обязателен.
+model CourseSlot {
+  id              String               @id @default(uuid())
+  type            CourseSlotType
+  startDay        DateTime             @db.Date
+  secondDay       DateTime?            @db.Date
+  maxParticipants Int
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  applications    CourseApplication[]
+
+  @@index([isActive, type])
+  @@index([startDay])
+}
+
+model CourseApplication {
+  id          String            @id @default(uuid())
+  fullName    String
+  birthDate   DateTime          @db.Date
+  experience  String            @db.Text
+  email       String
+  phone       String
+  courseType  CourseSlotType
+  slotId      String
+  slot        CourseSlot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  status      ServiceLeadStatus @default(NEW)
+  createdAt   DateTime          @default(now())
+
+  @@index([slotId])
+  @@index([createdAt])
+}
+
+/// День съёмки портфолио (доступные даты в календаре).
+model PortfolioShootDay {
+  id           String                 @id @default(uuid())
+  shootDate    DateTime               @db.Date
+  maxBookings  Int
+  isActive     Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  applications PortfolioApplication[]
+
+  @@unique([shootDate])
+  @@index([isActive])
+}
+
+model PortfolioApplication {
+  id        String            @id @default(uuid())
+  fullName  String
+  birthDate DateTime          @db.Date
+  email     String
+  phone     String
+  slotId    String
+  slot      PortfolioShootDay @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  status    ServiceLeadStatus @default(NEW)
+  createdAt DateTime          @default(now())
+
+  @@index([slotId])
   @@index([createdAt])
 }

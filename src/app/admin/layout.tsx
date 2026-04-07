@@ -6,8 +6,9 @@ const links = [
   { href: "/admin/moderation", label: "Модерация кастингов" },
   { href: "/admin/users", label: "Пользователи" },
   { href: "/admin/castings", label: "Кастинги" },
+  { href: "/admin/obuchenie", label: "Обучение" },
+  { href: "/admin/portfolio", label: "Портфолио" },
   { href: "/admin/reports", label: "Жалобы" },
-  { href: "/admin/reviews", label: "Отзывы" },
   { href: "/admin/chats", label: "Чаты" },
 ];
 

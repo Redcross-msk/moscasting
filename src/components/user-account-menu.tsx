@@ -79,6 +79,20 @@ export function UserAccountMenu() {
         >
           Избранное
         </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/obuchenie");
+          }}
+        >
+          Обучение
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push("/portfolio");
+          }}
+        >
+          Портфолио
+        </DropdownMenuItem>
         {role === "PRODUCER" ? (
           <DropdownMenuItem
             onSelect={() => {

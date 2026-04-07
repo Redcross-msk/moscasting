@@ -108,7 +108,12 @@ function CastingRow({
   });
 
   const mainCatalog = (
-    <div className="relative min-w-0 flex-1 space-y-2 border-l-4 border-primary pl-3 pr-2 sm:pl-4 sm:pr-3 md:pr-4">
+    <div
+      className={cn(
+        "relative min-w-0 flex-1 space-y-2 pr-1 sm:pr-2 md:pr-4",
+        "border-l-0 pl-0 md:border-l-4 md:border-primary md:pl-4",
+      )}
+    >
       <div>
         <p className="text-base font-semibold text-foreground group-hover/cast:text-primary group-hover/cast:underline sm:text-lg">
           {c.title}
@@ -149,7 +154,7 @@ function CastingRow({
           <span className="text-muted-foreground">{c.workHoursNote.trim()}</span>
         </p>
       ) : null}
-      <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+      <div className="rounded-xl border border-border/50 bg-muted/30 px-3 py-2.5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {castingCategoryLabelRu(c.castingCategory)}
         </p>
@@ -194,8 +199,8 @@ function CastingRow({
   const sideCatalog = (
     <aside
       className={cn(
-        "flex w-full flex-col gap-2 border-t border-border pt-3 text-left",
-        "md:min-w-[180px] md:w-auto md:border-l md:border-t-0 md:pl-4 md:pt-0 md:text-right md:items-end md:justify-center md:gap-3",
+        "flex w-full flex-col gap-3 border-t border-border/60 bg-muted/25 px-4 pb-4 pt-4 text-left sm:px-5",
+        "md:min-w-[180px] md:w-auto md:border-l md:border-border/60 md:border-t-0 md:bg-transparent md:px-5 md:py-0 md:text-right md:items-end md:justify-center",
       )}
     >
       <div className="flex flex-row items-start justify-between gap-3 md:flex-col md:items-end">
@@ -244,7 +249,7 @@ function CastingRow({
   );
 
   const innerRowClass = catalogLayout
-    ? "flex flex-col gap-0 p-3 pt-11 transition-colors hover:bg-muted/40 sm:p-4 md:flex-row md:items-stretch md:gap-6 md:px-5 md:py-4 md:pt-4"
+    ? "flex flex-col gap-0 p-4 pt-12 transition-colors sm:p-5 sm:pt-12 md:flex-row md:items-stretch md:gap-6 md:px-6 md:py-5 md:pt-5"
     : "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4";
 
   const mainBlock = catalogLayout ? mainCatalog : mainSimple;
@@ -265,11 +270,19 @@ function CastingRow({
     </div>
   );
 
+  const cardShellClass = catalogLayout
+    ? cn(
+        "relative overflow-hidden rounded-2xl border border-border/80 bg-card",
+        "shadow-[0_2px_14px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.35)]",
+        "transition-shadow duration-200 hover:shadow-[0_6px_24px_-4px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.45)]",
+      )
+    : "relative overflow-hidden bg-card";
+
   if (loading) {
     return (
-      <div className="relative overflow-hidden bg-card">
+      <div className={cardShellClass}>
         {showHeart ? (
-          <div className="pointer-events-none absolute right-2 top-2 z-20 opacity-50 sm:right-3 sm:top-3">
+          <div className="pointer-events-none absolute right-2 top-2 z-20 opacity-50 sm:right-4 sm:top-4">
             <div className="h-8 w-8 rounded-full bg-muted" />
           </div>
         ) : null}
@@ -282,9 +295,9 @@ function CastingRow({
   }
 
   return (
-    <div className="relative overflow-hidden bg-card">
+    <div className={cardShellClass}>
       {showHeart ? (
-        <div className="absolute right-2 top-2 z-20 sm:right-3 sm:top-3">
+        <div className="absolute right-3 top-3 z-20 sm:right-4 sm:top-4">
           <FavoriteHeartButton
             kind="casting"
             targetId={c.id}
@@ -398,21 +411,50 @@ function ActorCard({
             Навыки
           </span>
           {a.professionalLabels.length > 0 ? (
-            <div className="flex flex-wrap content-start gap-1 sm:gap-1.5">
-              {a.professionalLabels.map((label, i) => (
-                <Badge
-                  key={`${a.id}-p-${i}-${label}`}
-                  variant="secondary"
-                  className={cn(
-                    "max-w-full whitespace-normal break-words px-2 py-0.5 text-left font-normal leading-tight sm:px-2.5 sm:py-1 sm:leading-snug",
-                    catalogLayout ? "text-[10px] sm:text-xs" : "text-xs",
-                  )}
-                  title={label}
-                >
-                  {label}
-                </Badge>
-              ))}
-            </div>
+            catalogLayout ? (
+              <>
+                <div className="flex flex-wrap content-start gap-1 md:hidden">
+                  <Badge
+                    variant="secondary"
+                    className="max-w-full truncate px-2 py-0.5 text-left text-[10px] font-normal leading-tight"
+                    title={a.professionalLabels.join(", ")}
+                  >
+                    {a.professionalLabels[0]}
+                  </Badge>
+                </div>
+                <div className="hidden flex-wrap content-start gap-1 sm:gap-1.5 md:flex">
+                  {a.professionalLabels.map((label, i) => (
+                    <Badge
+                      key={`${a.id}-p-${i}-${label}`}
+                      variant="secondary"
+                      className={cn(
+                        "max-w-full whitespace-normal break-words px-2 py-0.5 text-left font-normal leading-tight sm:px-2.5 sm:py-1 sm:leading-snug",
+                        "text-[10px] sm:text-xs",
+                      )}
+                      title={label}
+                    >
+                      {label}
+                    </Badge>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-wrap content-start gap-1 sm:gap-1.5">
+                {a.professionalLabels.map((label, i) => (
+                  <Badge
+                    key={`${a.id}-p-${i}-${label}`}
+                    variant="secondary"
+                    className={cn(
+                      "max-w-full whitespace-normal break-words px-2 py-0.5 text-left font-normal leading-tight sm:px-2.5 sm:py-1 sm:leading-snug",
+                      "text-xs",
+                    )}
+                    title={label}
+                  >
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            )
           ) : (
             <p className="text-sm italic text-muted-foreground">Не указано</p>
           )}
@@ -456,6 +498,7 @@ export function HomePublicBrowse({
   showCastingsSeeAllLink = true,
   castingsCatalogToolbar,
   castingsCatalogLayout = false,
+  betweenCastingsAndActors,
 }: {
   castings: SerializedHomeCasting[];
   actors: SerializedHomeActor[];
@@ -472,6 +515,8 @@ export function HomePublicBrowse({
   castingsCatalogToolbar?: ReactNode;
   /** Развёрнутая карточка каталога (/explore?tab=castings) */
   castingsCatalogLayout?: boolean;
+  /** Вставка между блоками «Кастинги» и «Актёры» (главная для гостей) */
+  betweenCastingsAndActors?: ReactNode;
 }) {
   const { data: session, status } = useSession();
   const [castModalOpen, setCastModalOpen] = useState(false);
@@ -518,9 +563,22 @@ export function HomePublicBrowse({
             )
           ) : null}
         </div>
-        <div className="flex flex-col gap-px overflow-hidden rounded-lg border border-border bg-border">
+        <div
+          className={cn(
+            castingsCatalogLayout
+              ? "flex flex-col gap-3 sm:gap-4"
+              : "flex flex-col gap-px overflow-hidden rounded-lg border border-border bg-border",
+          )}
+        >
           {castings.length === 0 ? (
-            <div className="bg-card p-5 text-center text-sm text-muted-foreground sm:p-8">
+            <div
+              className={cn(
+                "p-5 text-center text-sm text-muted-foreground sm:p-8",
+                castingsCatalogLayout
+                  ? "rounded-2xl border border-border/80 bg-card shadow-sm"
+                  : "bg-card",
+              )}
+            >
               Пока нет активных кастингов
             </div>
           ) : (
@@ -540,6 +598,10 @@ export function HomePublicBrowse({
         </div>
       </section>
       )}
+
+      {activeTab === "both" && betweenCastingsAndActors ? (
+        <div className="py-2 sm:py-3">{betweenCastingsAndActors}</div>
+      ) : null}
 
       {showActors && (
       <section>

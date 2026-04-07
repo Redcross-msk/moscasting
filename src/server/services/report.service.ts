@@ -1,4 +1,4 @@
-import { ReportStatus, ReportTargetType } from "@prisma/client";
+import { ReportStatus, ReportTargetType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function createReport(params: {
@@ -24,6 +24,20 @@ export async function listReports() {
     orderBy: { createdAt: "desc" },
     include: {
       reporter: { select: { id: true, email: true } },
+    },
+  });
+}
+
+/** Жалобы на кастинги от актёров (заявки). */
+export async function listCastingReportsFromActors() {
+  return prisma.report.findMany({
+    where: {
+      targetType: ReportTargetType.CASTING,
+      reporter: { role: UserRole.ACTOR },
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      reporter: { select: { id: true, email: true, role: true } },
     },
   });
 }
