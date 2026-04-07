@@ -252,7 +252,7 @@ export function ProducerProfileView({
         {reviews.length > 0 ? (
           <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:rounded-2xl sm:p-5">
             <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:mb-4">
-              Отзывы актёров
+              Оценки актёров
             </h2>
             <ul className="space-y-2 sm:space-y-3">
               {reviews.map((r) => {
@@ -269,9 +269,11 @@ export function ProducerProfileView({
                         <span className="text-muted-foreground/40">{"☆".repeat(5 - filled)}</span>
                       </span>
                     </div>
-                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      {r.text}
-                    </p>
+                    {r.text.trim() ? (
+                      <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                        {r.text}
+                      </p>
+                    ) : null}
                     <p className="mt-1.5 text-[10px] text-muted-foreground sm:text-xs">
                       {new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(new Date(r.createdAt))}
                     </p>

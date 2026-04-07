@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listApplicationsForCasting } from "@/server/services/application.service";
-import { ReviewDirection, ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,16 +70,6 @@ export default async function CastingApplicationsPage({ params }: { params: Prom
                     </>
                   )}
               </div>
-              {app.status === ApplicationStatus.CAST_PASSED && (
-                <ReviewBlock
-                  applicationId={app.id}
-                  direction={ReviewDirection.PRODUCER_TO_ACTOR}
-                  existing={app.reviews.find(
-                    (r) =>
-                      r.direction === ReviewDirection.PRODUCER_TO_ACTOR && r.authorId === session!.user.id,
-                  )}
-                />
-              )}
             </CardContent>
           </Card>
         ))}

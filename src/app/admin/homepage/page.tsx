@@ -4,25 +4,17 @@ import {
   listCastingsForHomepageAdminPicker,
 } from "@/server/services/homepage.service";
 import { env } from "@/lib/env";
-import { saveHomepageFeaturedActorsAction, saveHomepageFeaturedCastingsAction } from "@/features/admin/actions";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  AdminHomepageActorsPickForm,
+  AdminHomepageCastingsPickForm,
+} from "@/components/admin/homepage-slot-pickers";
 
-export default async function AdminHomepagePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ castingQ?: string; actorQ?: string }>;
-}) {
-  const sp = await searchParams;
-  const castingQ = sp.castingQ?.trim() ?? "";
-  const actorQ = sp.actorQ?.trim() ?? "";
-
+export default async function AdminHomepagePage() {
   const citySlug = env.NEXT_PUBLIC_DEFAULT_CITY_SLUG;
   const [pickCastings, pickActors, { castingSlots, actorSlots }] = await Promise.all([
-    listCastingsForHomepageAdminPicker(citySlug, castingQ || undefined),
-    listActorsForHomepageAdminPicker(citySlug, actorQ || undefined),
+    listCastingsForHomepageAdminPicker(citySlug),
+    listActorsForHomepageAdminPicker(citySlug),
     getHomepageFeaturedSlotsAdmin(),
   ]);
 
@@ -35,27 +27,26 @@ export default async function AdminHomepagePage({
     actorIdByPos[s.position] = s.actorProfileId;
   }
 
+  const castingOpts = pickCastings.map((c) => ({
+    id: c.id,
+    title: c.title,
+    cityName: c.city.name,
+  }));
+  const actorOpts = pickActors.map((a) => ({
+    id: a.id,
+    fullName: a.fullName,
+    cityName: a.city.name,
+  }));
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Главная страница</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          До шести карточек в каждом блоке. Слоты можно продавать как рекламные места. Пустые слоты на сайте
-          заполняются автоматически из публичного каталога (Москва).
+          До шести карточек в каждом блоке. Для каждого слота нажмите «Выбрать», найдите кастинг или актёра в списке и
+          подтвердите. Пустой слот заполняется автоматически из каталога (Москва).
         </p>
       </div>
-
-      <form method="get" className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="min-w-[200px] flex-1 space-y-2">
-          <Label htmlFor="castingQ">Поиск кастингов для выбора</Label>
-          <Input id="castingQ" name="castingQ" placeholder="Название…" defaultValue={castingQ} />
-        </div>
-        <div className="min-w-[200px] flex-1 space-y-2">
-          <Label htmlFor="actorQ">Поиск актёров для выбора</Label>
-          <Input id="actorQ" name="actorQ" placeholder="Имя…" defaultValue={actorQ} />
-        </div>
-        <Button type="submit">Найти</Button>
-      </form>
 
       <Card>
         <CardHeader>
@@ -63,29 +54,7 @@ export default async function AdminHomepagePage({
           <CardDescription>Позиции 1–6 сверху вниз в блоке «Активные кастинги».</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={saveHomepageFeaturedCastingsAction} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((p) => (
-                <div key={p} className="space-y-2">
-                  <Label htmlFor={`casting_slot_${p}`}>Слот {p}</Label>
-                  <select
-                    id={`casting_slot_${p}`}
-                    name={`casting_slot_${p}`}
-                    defaultValue={castingIdByPos[p] ?? ""}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">— автоматически из каталога —</option>
-                    {pickCastings.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title} ({c.city.name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-            <Button type="submit">Сохранить кастинги</Button>
-          </form>
+          <AdminHomepageCastingsPickForm castings={castingOpts} initialByPosition={castingIdByPos} />
         </CardContent>
       </Card>
 
@@ -95,29 +64,7 @@ export default async function AdminHomepagePage({
           <CardDescription>Позиции 1–6 слева направо, затем следующий ряд.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={saveHomepageFeaturedActorsAction} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((p) => (
-                <div key={p} className="space-y-2">
-                  <Label htmlFor={`actor_slot_${p}`}>Слот {p}</Label>
-                  <select
-                    id={`actor_slot_${p}`}
-                    name={`actor_slot_${p}`}
-                    defaultValue={actorIdByPos[p] ?? ""}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">— автоматически из каталога —</option>
-                    {pickActors.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.fullName} ({a.city.name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-            <Button type="submit">Сохранить актёров</Button>
-          </form>
+          <AdminHomepageActorsPickForm actors={actorOpts} initialByPosition={actorIdByPos} />
         </CardContent>
       </Card>
     </div>

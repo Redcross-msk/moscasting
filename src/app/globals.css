@@ -36,6 +36,8 @@
   }
   html {
     overflow-x: clip;
+    /* Меньше «прыжка» макета при появлении скролла (выпадающие меню) */
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground antialiased;

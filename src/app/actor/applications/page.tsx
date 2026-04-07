@@ -1,8 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listApplicationsForActor } from "@/server/services/application.service";
-import { ApplicationStatus, ReviewDirection } from "@prisma/client";
-import { ReviewBlock } from "@/components/review-block";
 import { ActorApplicationCatalogCard } from "@/components/actor-application-catalog-card";
 import { prismaCastingToSerializedHome } from "@/lib/prisma-casting-to-serialized";
 
@@ -39,21 +37,6 @@ export default async function ActorApplicationsPage() {
                   chatId={app.chat?.id ?? null}
                   coverNote={app.coverNote}
                 />
-                {(app.status === ApplicationStatus.INVITED || app.status === ApplicationStatus.CAST_PASSED) && (
-                  <div className="rounded-lg border border-border/80 bg-muted/20 px-3 py-3 sm:px-4">
-                    <p className="mb-2 text-xs text-muted-foreground">
-                      Оцените кастинг-директора — отзыв появится в его профиле после сохранения.
-                    </p>
-                    <ReviewBlock
-                      applicationId={app.id}
-                      direction={ReviewDirection.ACTOR_TO_PRODUCER}
-                      existing={app.reviews.find(
-                        (r) =>
-                          r.direction === ReviewDirection.ACTOR_TO_PRODUCER && r.authorId === session!.user.id,
-                      )}
-                    />
-                  </div>
-                )}
               </div>
             );
           })

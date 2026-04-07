@@ -359,10 +359,7 @@ function ActorCard({
           <img
             src={a.avatarUrl!}
             alt=""
-            className={cn(
-              "h-full w-full object-center",
-              catalogLayout ? "object-cover" : "object-contain",
-            )}
+            className="h-full w-full object-cover object-center"
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">

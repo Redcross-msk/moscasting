@@ -554,7 +554,7 @@ model Review {
   subject       User     @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: Cascade)
   direction     ReviewDirection
   stars         Int
-  text          String
+  text          String                 @default("")
   moderationStatus ReviewModerationStatus @default(PENDING)
 
   createdAt DateTime @default(now())

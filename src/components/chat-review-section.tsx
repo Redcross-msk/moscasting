@@ -21,10 +21,10 @@ export function ChatReviewSection({
   if (role === "ACTOR" && canActorReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Отзывы</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Оценка</p>
         <p className="mb-3 text-xs text-muted-foreground">
-          Оцените кастинг-директора — отзыв появится в его профиле. Продюсер может независимо оставить отзыв о вас в своём
-          чате.
+          Поставьте звёзды кастинг-директору (без текста). Он не увидит вашу оценку в чате; она учитывается в общем
+          рейтинге.
         </p>
         <ReviewBlock
           applicationId={applicationId}
@@ -40,8 +40,8 @@ export function ChatReviewSection({
   if (role === "ACTOR" && applicationStatus !== ApplicationStatus.REJECTED && applicationStatus !== ApplicationStatus.WITHDRAWN) {
     return (
       <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground sm:text-sm">
-        После того как кастинг-директор нажмёт «Принять в проект», здесь можно будет оставить отзыв и звёзды — они
-        появятся в его профиле.
+        После «Принять в проект» здесь можно будет поставить оценку звёздами — без текста, собеседник не увидит оценку в
+        чате.
       </div>
     );
   }
@@ -49,10 +49,9 @@ export function ChatReviewSection({
   if (role === "PRODUCER" && canActorReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Отзыв об актёре</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Оценка актёра</p>
         <p className="mb-3 text-xs text-muted-foreground">
-          Доступно после приглашения в проект. Отзыв актёра о вас и ваш отзыв об актёре независимы — можно оставить в
-          любом порядке.
+          Только звёзды, без текста. Актёр не увидит вашу оценку в чате; она учитывается в рейтинге.
         </p>
         <ReviewBlock
           applicationId={applicationId}

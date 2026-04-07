@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import { auth } from "@/auth";
 import { PortfolioLeadForm } from "@/components/portfolio-lead-form";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -7,9 +11,18 @@ export const metadata: Metadata = {
   description: "Профессиональное фото- и видеопортфолио для актёров по государственным стандартам.",
 };
 
-export default function PortfolioServicePage() {
+export default async function PortfolioServicePage() {
+  const session = await auth();
+  const homeHref = session ? "/explore?tab=castings" : "/";
+
   return (
     <div className="mx-auto max-w-3xl space-y-10 pb-12">
+      <Button variant="outline" size="sm" className="w-fit" asChild>
+        <Link href={homeHref}>
+          <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
+          На главную
+        </Link>
+      </Button>
       <header className="space-y-3">
         <h1 className="text-3xl font-bold tracking-tight text-primary">Портфолио и видеовизитка</h1>
         <p className="text-lg text-muted-foreground">

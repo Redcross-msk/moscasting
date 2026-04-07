@@ -46,7 +46,7 @@ export function UserAccountMenu() {
   const chatsHref = role === "PRODUCER" ? "/producer/chats" : role === "ACTOR" ? "/actor/chats" : "/admin";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="max-w-[min(100%,240px)] gap-1 border-border px-2 font-normal">
           <span className="truncate text-xs sm:text-sm">{session.user.email}</span>
