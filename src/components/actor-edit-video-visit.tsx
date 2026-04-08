@@ -3,8 +3,10 @@
 import { useRef, useState, useTransition } from "react";
 import { uploadActorPortfolioVideoFormAction } from "@/features/media/upload-actions";
 import { Button } from "@/components/ui/button";
+import { VideoWithPosterFrame } from "@/components/video-with-poster-frame";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
-type VideoItem = { id: string; publicUrl: string | null };
+type VideoItem = { id: string; publicUrl: string | null; storageKey?: string };
 
 export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: VideoItem[] }) {
   const [videoPending, startVideoTransition] = useTransition();
@@ -13,7 +15,12 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
   const [videoUrlAfterUpload, setVideoUrlAfterUpload] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const hasSavedVideoVisit =
-    portfolioVideos.some((v) => v.publicUrl) || Boolean(videoUrlAfterUpload);
+    portfolioVideos.some((v) => resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null)) ||
+    Boolean(videoUrlAfterUpload);
+
+  function videoSrc(v: VideoItem): string | null {
+    return resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null);
+  }
 
   return (
     <div className="space-y-4 border-t border-border pt-10">
@@ -54,35 +61,24 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
         {hasSavedVideoVisit ? "Изменить видеовизитку" : "Добавить видеовизитку"}
       </Button>
       {videoErr ? <p className="text-sm text-destructive">{videoErr}</p> : null}
-      {(portfolioVideos.some((v) => v.publicUrl) || videoPickPreview || videoUrlAfterUpload) && (
+      {(portfolioVideos.some((v) => videoSrc(v)) || videoPickPreview || videoUrlAfterUpload) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {portfolioVideos
-            .filter((v) => v.publicUrl)
+            .filter((v) => videoSrc(v))
             .map((v) => (
-              <video
-                key={v.id}
-                src={v.publicUrl!}
-                controls
-                className="aspect-video w-full rounded-md border bg-black"
-                preload="metadata"
-              />
+              <div key={v.id} className="overflow-hidden rounded-md border">
+                <VideoWithPosterFrame src={videoSrc(v)!} />
+              </div>
             ))}
           {videoUrlAfterUpload && !portfolioVideos.some((v) => v.publicUrl === videoUrlAfterUpload) ? (
-            <video
-              key="just-uploaded"
-              src={videoUrlAfterUpload}
-              controls
-              className="aspect-video w-full rounded-md border bg-black"
-              preload="metadata"
-            />
+            <div key="just-uploaded" className="overflow-hidden rounded-md border">
+              <VideoWithPosterFrame src={videoUrlAfterUpload} />
+            </div>
           ) : null}
           {videoPickPreview ? (
-            <video
-              src={videoPickPreview}
-              controls
-              className="aspect-video w-full rounded-md border border-dashed border-primary/50 bg-black"
-              preload="metadata"
-            />
+            <div className="overflow-hidden rounded-md border border-dashed border-primary/50">
+              <VideoWithPosterFrame src={videoPickPreview} />
+            </div>
           ) : null}
         </div>
       )}

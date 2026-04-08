@@ -7,8 +7,11 @@ import { prisma } from "@/lib/db";
 import {
   ensureDirectThread,
   getDirectThreadWithAccess,
+  markDirectThreadReadForViewer,
   sendDirectThreadMessage,
 } from "@/server/services/chat.service";
+import { chatSenderPublicLabel, formatChatMessageTimeHm } from "@/lib/chat-sender-display";
+import { formatActorSurnameAndFirstName } from "@/lib/utils";
 
 export async function startDirectThreadWithActorAction(actorProfileId: string) {
   const session = await auth();
@@ -27,23 +30,36 @@ export async function fetchApplicationChatPanelAction(chatId: string) {
   const session = await auth();
   if (!session?.user) return null;
   const { getChatWithAccess } = await import("@/server/services/chat.service");
-  const chat = await getChatWithAccess(chatId, session.user.id);
+  const chat = await getChatWithAccess(chatId, session.user.id, { markRead: true });
   if (!chat) return null;
+
+  const counterpartyUserId =
+    chat.application.actorProfile.userId === session.user.id
+      ? chat.application.producerProfile.userId
+      : chat.application.actorProfile.userId;
+
   return {
     kind: "application" as const,
     chatId: chat.id,
     title: chat.application.casting.title,
-    subtitle: `${chat.application.actorProfile.fullName} · отклик`,
+    subtitle: `${formatActorSurnameAndFirstName(chat.application.actorProfile.fullName)} · отклик`,
     closedAt: chat.closedAt ? chat.closedAt.toISOString() : null,
     applicationId: chat.application.id,
     applicationStatus: chat.application.status,
-    messages: chat.messages.map((m) => ({
-      id: m.id,
-      senderId: m.senderId,
-      senderEmail: m.sender.email,
-      body: m.body,
-      payload: m.payload,
-    })),
+    messages: chat.messages.map((m) => {
+      const isMine = m.senderId === session.user.id;
+      const readByCounterparty = isMine && m.reads.some((r) => r.userId === counterpartyUserId);
+      return {
+        id: m.id,
+        senderId: m.senderId,
+        senderLabel: chatSenderPublicLabel(m.sender),
+        createdAtIso: m.createdAt.toISOString(),
+        timeHm: formatChatMessageTimeHm(m.createdAt),
+        receipt: (isMine ? (readByCounterparty ? "read" : "sent") : "none") as "none" | "sent" | "read",
+        body: m.body,
+        payload: m.payload,
+      };
+    }),
   };
 }
 
@@ -52,22 +68,27 @@ export async function fetchDirectThreadPanelAction(threadId: string) {
   if (!session?.user) return null;
   const thread = await getDirectThreadWithAccess(threadId, session.user.id);
   if (!thread) return null;
+  await markDirectThreadReadForViewer(threadId, session.user.id);
   const isProducer = thread.producerProfile.userId === session.user.id;
   return {
     kind: "direct" as const,
     threadId: thread.id,
     title: "Личный чат",
     subtitle: isProducer
-      ? thread.actorProfile.fullName
-      : thread.producerProfile.companyName || thread.producerProfile.fullName,
-    messages: thread.messages.map(
-      (m: { id: string; senderId: string; body: string; sender: { email: string } }) => ({
+      ? formatActorSurnameAndFirstName(thread.actorProfile.fullName)
+      : thread.producerProfile.companyName?.trim() || formatActorSurnameAndFirstName(thread.producerProfile.fullName),
+    messages: thread.messages.map((m) => {
+      const isMine = m.senderId === session.user.id;
+      return {
         id: m.id,
         senderId: m.senderId,
-        senderEmail: m.sender.email,
+        senderLabel: chatSenderPublicLabel(m.sender),
+        createdAtIso: m.createdAt.toISOString(),
+        timeHm: formatChatMessageTimeHm(m.createdAt),
+        receipt: (isMine ? "sent" : "none") as "none" | "sent" | "read",
         body: m.body,
-      }),
-    ),
+      };
+    }),
   };
 }
 

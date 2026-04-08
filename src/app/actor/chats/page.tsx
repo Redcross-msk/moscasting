@@ -21,20 +21,21 @@ export default async function ActorChatsPage() {
   });
   if (!profile) return <p>Нет профиля</p>;
 
-  const data = await getActorChatInboxData(profile.id);
+  const data = await getActorChatInboxData(profile.id, session.user.id);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Чаты</h1>
+    <div className="flex min-h-0 flex-1 flex-col pb-8">
       <Suspense fallback={<InboxFallback />}>
-        <ActorChatsInbox
-          byCasting={data.byCasting}
-          direct={data.direct}
-          currentUserId={session.user.id}
-          directChatDisabledMessage={
-            isProducerActorDirectThreadAvailable() ? null : PRISMA_CLIENT_OUTDATED_HINT
-          }
-        />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <ActorChatsInbox
+            byCasting={data.byCasting}
+            direct={data.direct}
+            currentUserId={session.user.id}
+            directChatDisabledMessage={
+              isProducerActorDirectThreadAvailable() ? null : PRISMA_CLIENT_OUTDATED_HINT
+            }
+          />
+        </div>
       </Suspense>
     </div>
   );

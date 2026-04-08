@@ -15,10 +15,12 @@ export function ChatReviewSection({
   viewerUserId: string;
   role: "ACTOR" | "PRODUCER";
 }) {
-  const canActorReview =
-    applicationStatus === ApplicationStatus.INVITED || applicationStatus === ApplicationStatus.CAST_PASSED;
+  const canLeaveStarsReview =
+    applicationStatus === ApplicationStatus.INVITED ||
+    applicationStatus === ApplicationStatus.ACCEPTED ||
+    applicationStatus === ApplicationStatus.CAST_PASSED;
 
-  if (role === "ACTOR" && canActorReview) {
+  if (role === "ACTOR" && canLeaveStarsReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Оценка</p>
@@ -46,7 +48,7 @@ export function ChatReviewSection({
     );
   }
 
-  if (role === "PRODUCER" && canActorReview) {
+  if (role === "PRODUCER" && canLeaveStarsReview) {
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Оценка актёра</p>

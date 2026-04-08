@@ -15,6 +15,10 @@ export function NotificationBadgeLink() {
       setCount(0);
       return;
     }
+    if (pathname === "/notifications") {
+      setCount(0);
+      return;
+    }
     let cancelled = false;
     fetch("/api/notifications")
       .then((r) => r.json())

@@ -40,6 +40,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email.toLowerCase() },
+          include: {
+            actorProfile: { select: { fullName: true } },
+            producerProfile: { select: { fullName: true, companyName: true } },
+          },
         });
         if (!user || user.status !== "ACTIVE") return null;
 
@@ -51,10 +55,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (expectedRole === "PRODUCER" && user.role !== "PRODUCER") return null;
         }
 
+        let displayName = user.email;
+        if (user.role === "ACTOR" && user.actorProfile?.fullName?.trim()) {
+          displayName = user.actorProfile.fullName.trim();
+        } else if (user.role === "PRODUCER") {
+          const fn = user.producerProfile?.fullName?.trim();
+          displayName = fn || user.producerProfile?.companyName?.trim() || user.email;
+        }
+
         return {
           id: user.id,
           email: user.email,
-          name: user.email,
+          name: displayName,
+          displayName,
           role: user.role as UserRole,
         };
       },
@@ -66,6 +79,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id!;
         token.role = (user as { role: UserRole }).role;
         token.email = user.email ?? undefined;
+        const u = user as { displayName?: string | null; name?: string | null };
+        token.displayName = (u.displayName ?? u.name ?? user.email)?.trim() || null;
       }
       return token;
     },
@@ -74,6 +89,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.email = (token.email as string) ?? session.user.email;
+        const dn = (token.displayName as string | null | undefined)?.trim();
+        session.user.displayName = dn || null;
+        session.user.name = dn || session.user.email || session.user.name;
       }
       return session;
     },

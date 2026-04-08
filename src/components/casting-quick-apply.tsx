@@ -30,6 +30,7 @@ function previewToPayload(p: Exclude<ActorApplyPreview, { error: string }>) {
     age: p.age,
     heightCm: p.heightCm,
     weightKg: p.weightKg,
+    avatarUrl: p.avatarUrl,
   };
 }
 
@@ -212,11 +213,21 @@ export function CastingQuickApply({
                 />
               </div>
               {err ? <p className="text-sm text-destructive">{err}</p> : null}
-              <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
-                <Button type="button" variant="outline" onClick={() => setApplyOpen(false)}>
+              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="order-2 w-full sm:order-1 sm:w-auto"
+                  onClick={() => setApplyOpen(false)}
+                >
                   Отмена
                 </Button>
-                <Button type="button" disabled={pending} onClick={submitApply}>
+                <Button
+                  type="button"
+                  className="order-1 w-full sm:order-2 sm:w-auto"
+                  disabled={pending}
+                  onClick={submitApply}
+                >
                   {pending ? "Отправка…" : "Отправить отклик"}
                 </Button>
               </DialogFooter>

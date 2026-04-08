@@ -89,6 +89,14 @@ enum CastingCategory {
   SOLO
 }
 
+/// Период оплаты в карточке (час / смена / сутки / проект).
+enum CastingPaymentPeriod {
+  HOUR
+  SHIFT
+  DAY
+  PROJECT
+}
+
 enum ApplicationStatus {
   SUBMITTED
   VIEWED
@@ -179,6 +187,7 @@ model User {
   favoriteCastings  FavoriteCasting[]
   directThreadMessages DirectThreadMessage[] @relation("DirectThreadSender")
   portalVisits      PortalVisit[]
+  mediaFileLikes    MediaFileLike[]
 }
 
 /// Хит посещения портала (гость или авторизованный) — для обзора в админке.
@@ -289,6 +298,10 @@ model ProducerActorDirectThread {
   actorProfile      ActorProfile    @relation(fields: [actorProfileId], references: [id], onDelete: Cascade)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  /// Когда продюсер последний раз открывал тред (для бейджа непрочитанных).
+  lastSeenAtProducer DateTime?
+  /// Когда актёр последний раз открывал тред.
+  lastSeenAtActor    DateTime?
   messages          DirectThreadMessage[]
 
   @@unique([producerProfileId, actorProfileId])
@@ -396,6 +409,22 @@ model MediaFile {
   @@index([actorProfileId])
   @@index([producerProfileId])
   @@index([castingId])
+
+  likes MediaFileLike[]
+}
+
+/// Лайк на фото в портфолио актёра / кастинг-директора (не для медиа кастинга).
+model MediaFileLike {
+  id          String    @id @default(uuid())
+  mediaFileId String
+  mediaFile   MediaFile @relation(fields: [mediaFileId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([mediaFileId, userId])
+  @@index([mediaFileId])
+  @@index([userId])
 }
 
 model Casting {
@@ -419,6 +448,9 @@ model Casting {
 
   castingCategory      CastingCategory?
   paymentRub           Int?
+  paymentPeriod        CastingPaymentPeriod?
+  /// Массив строк YYYY-MM-DD — дни съёмки (первая дата дублируется в scheduledAt для сортировки).
+  shootDatesJson       Json?
   shootStartTime      String?
   workHoursNote        String?
   metroOrPlace         String?

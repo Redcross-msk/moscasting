@@ -4,7 +4,22 @@ import {
   ModerationStatus,
   Prisma,
 } from "@prisma/client";
+import type { CastingDbPaymentAndDates } from "@/lib/casting-payment-period";
 import { prisma } from "@/lib/db";
+
+/** По наступлении «завершить приём откликов» кастинг закрывается для новых откликов. */
+export async function closeCastingsPastApplicationDeadline(): Promise<void> {
+  const now = new Date();
+  await prisma.casting.updateMany({
+    where: {
+      deletedAt: null,
+      status: CastingStatus.ACTIVE,
+      moderationStatus: ModerationStatus.APPROVED,
+      applicationDeadline: { not: null, lt: now },
+    },
+    data: { status: CastingStatus.CLOSED },
+  });
+}
 
 export type PublicCastingSort = "new" | "old" | "pay_high" | "pay_low" | "shoot_near" | "shoot_far";
 
@@ -98,9 +113,10 @@ function safeSkip(skip: number | undefined): number | undefined {
 }
 
 export async function listPublicCastings(filters: PublicCastingFilters) {
+  await closeCastingsPastApplicationDeadline();
   const where = buildPublicCastingWhere(filters);
 
-  return prisma.casting.findMany({
+  const rows = await prisma.casting.findMany({
     where,
     orderBy: publicCastingOrderBy(filters.sort),
     skip: safeSkip(filters.skip),
@@ -112,23 +128,42 @@ export async function listPublicCastings(filters: PublicCastingFilters) {
       },
     },
   });
+  return rows as (typeof rows[number] & CastingDbPaymentAndDates)[];
 }
 
 export async function countPublicCastings(
   filters: Pick<PublicCastingFilters, "citySlug" | "search" | "castingCategory" | "shootDateYmd">,
 ) {
+  await closeCastingsPastApplicationDeadline();
   const where = buildPublicCastingWhere(filters);
   return prisma.casting.count({ where });
 }
 
+/** Одобренные кастинги для публичной карточки: активные, на паузе и завершённые (только просмотр). */
+const PUBLIC_CASTING_DETAIL_STATUSES: CastingStatus[] = [
+  CastingStatus.ACTIVE,
+  CastingStatus.PAUSED,
+  CastingStatus.CLOSED,
+  CastingStatus.ARCHIVED,
+];
+
+/** Завершённые: без отклика и избранного, только просмотр. */
+export function isCastingPublicViewOnly(status: CastingStatus): boolean {
+  return status === CastingStatus.CLOSED || status === CastingStatus.ARCHIVED;
+}
+
 export async function getCastingPublic(id: string) {
-  return prisma.casting.findFirst({
+  await closeCastingsPastApplicationDeadline();
+  const row = await prisma.casting.findFirst({
     where: {
       id,
       deletedAt: null,
-      status: CastingStatus.ACTIVE,
+      status: { in: PUBLIC_CASTING_DETAIL_STATUSES },
       moderationStatus: ModerationStatus.APPROVED,
-      producerProfile: { isBlockedByAdmin: false },
+      producerProfile: {
+        isBlockedByAdmin: false,
+        moderationStatus: { not: ModerationStatus.BLOCKED },
+      },
     },
     include: {
       city: true,
@@ -144,6 +179,7 @@ export async function getCastingPublic(id: string) {
       media: { orderBy: { sortOrder: "asc" } },
     },
   });
+  return row as (NonNullable<typeof row> & CastingDbPaymentAndDates) | null;
 }
 
 export async function recordCastingView(castingId: string, viewerId?: string | null) {
@@ -159,18 +195,20 @@ export async function recordCastingView(castingId: string, viewerId?: string | n
 }
 
 export async function listProducerCastings(producerProfileId: string) {
-  return prisma.casting.findMany({
+  const rows = await prisma.casting.findMany({
     where: { producerProfileId, deletedAt: null },
     orderBy: { updatedAt: "desc" },
     include: { city: true },
   });
+  return rows as (typeof rows[number] & CastingDbPaymentAndDates)[];
 }
 
 export async function getCastingForProducer(castingId: string, producerProfileId: string) {
-  return prisma.casting.findFirst({
+  const row = await prisma.casting.findFirst({
     where: { id: castingId, producerProfileId, deletedAt: null },
     include: { city: true, media: { orderBy: { sortOrder: "asc" } } },
   });
+  return row as (NonNullable<typeof row> & CastingDbPaymentAndDates) | null;
 }
 
 export async function createCasting(

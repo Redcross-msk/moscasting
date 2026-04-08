@@ -5,17 +5,32 @@ import { prisma } from "@/lib/db";
 import { CastingStatus, ModerationStatus } from "@prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ProducerCastingCardActions } from "@/components/producer-casting-card-actions";
-import { ProducerCastingSpecGrid } from "@/components/producer-casting-spec-grid";
+import {
+  ProducerCastingsPaginatedList,
+  type ProducerCastingListItem,
+} from "@/components/producer-castings-paginated-list";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 
-function formatDtShort(d: Date | null | undefined) {
-  if (!d) return "—";
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(d));
+function toProducerCastingListItem(
+  c: Awaited<ReturnType<typeof listProducerCastings>>[number],
+): ProducerCastingListItem {
+  return {
+    id: c.id,
+    title: c.title,
+    cityName: c.city.name,
+    metroStation: c.metroStation,
+    addressLine: c.addressLine,
+    metroOrPlace: c.metroOrPlace,
+    paymentRub: c.paymentRub,
+    paymentInfo: c.paymentInfo,
+    paymentPeriod: c.paymentPeriod,
+    shootStartTime: c.shootStartTime,
+    scheduledAtIso: c.scheduledAt?.toISOString() ?? null,
+    shootDatesYmd: parseShootDatesYmdFromJson(c.shootDatesJson),
+    applicationDeadlineIso: c.applicationDeadline?.toISOString() ?? null,
+    description: c.description,
+    moderationComment: c.moderationComment,
+  };
 }
 
 export default async function ProducerCastingsPage() {
@@ -40,49 +55,6 @@ export default async function ProducerCastingsPage() {
     (c) => !moderationQueue.includes(c) && !active.includes(c) && !completed.includes(c),
   );
 
-  function CastingListCard({ c, showComplete }: { c: (typeof castings)[0]; showComplete?: boolean }) {
-    const loc = [c.metroStation, c.addressLine].filter(Boolean).join(" · ") || c.metroOrPlace || "—";
-    const pay =
-      c.paymentRub != null
-        ? `${c.paymentRub.toLocaleString("ru-RU")} ₽${c.paymentInfo ? ` · ${c.paymentInfo}` : ""}`
-        : c.paymentInfo || "—";
-
-    return (
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <CardContent className="space-y-3 p-3 sm:space-y-3 sm:p-4">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-            <h3 className="min-w-0 text-base font-semibold leading-snug sm:text-lg">
-              <Link href={`/producer/castings/${c.id}`} className="text-foreground hover:text-primary hover:underline">
-                {c.title}
-              </Link>
-            </h3>
-            <span className="shrink-0 text-xs text-muted-foreground sm:text-sm">{c.city.name}</span>
-          </div>
-
-          <ProducerCastingSpecGrid
-            rows={[
-              { label: "Съёмка", value: formatDtShort(c.scheduledAt) },
-              { label: "Старт", value: c.shootStartTime?.trim() || "—" },
-              { label: "Локация", value: loc, span: "full" },
-              { label: "Оплата", value: pay, span: "full" },
-              { label: "Дедлайн откликов", value: formatDtShort(c.applicationDeadline) },
-            ]}
-          />
-
-          {c.moderationComment ? (
-            <p className="rounded-md border border-destructive/20 bg-destructive/5 px-2.5 py-1.5 text-xs text-destructive">
-              {c.moderationComment}
-            </p>
-          ) : null}
-
-          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{c.description}</p>
-
-          <ProducerCastingCardActions castingId={c.id} showComplete={showComplete} />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-8 pb-8 sm:space-y-10 sm:pb-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -103,11 +75,7 @@ export default async function ProducerCastingsPage() {
             <h2 className="text-base font-bold sm:text-lg">На модерации</h2>
             <p className="text-xs text-muted-foreground sm:text-sm">До появления в каталоге</p>
           </div>
-          <div className="grid gap-3">
-            {moderationQueue.map((c) => (
-              <CastingListCard key={c.id} c={c} />
-            ))}
-          </div>
+          <ProducerCastingsPaginatedList items={moderationQueue.map(toProducerCastingListItem)} />
         </section>
       )}
 
@@ -123,11 +91,10 @@ export default async function ProducerCastingsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3">
-            {active.map((c) => (
-              <CastingListCard key={c.id} c={c} showComplete />
-            ))}
-          </div>
+          <ProducerCastingsPaginatedList
+            items={active.map(toProducerCastingListItem)}
+            showComplete
+          />
         )}
       </section>
 
@@ -140,11 +107,7 @@ export default async function ProducerCastingsPage() {
             Пока пусто.
           </p>
         ) : (
-          <div className="grid gap-3">
-            {completed.map((c) => (
-              <CastingListCard key={c.id} c={c} />
-            ))}
-          </div>
+          <ProducerCastingsPaginatedList items={completed.map(toProducerCastingListItem)} />
         )}
       </section>
 
@@ -154,11 +117,7 @@ export default async function ProducerCastingsPage() {
             <h2 className="text-base font-bold sm:text-lg">Прочие</h2>
             <p className="text-xs text-muted-foreground sm:text-sm">Черновики, пауза</p>
           </div>
-          <div className="grid gap-3">
-            {rest.map((c) => (
-              <CastingListCard key={c.id} c={c} />
-            ))}
-          </div>
+          <ProducerCastingsPaginatedList items={rest.map(toProducerCastingListItem)} />
         </section>
       )}
     </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { calculateAge } from "@/lib/utils";
+import { actorProfileCatalogInclude } from "@/server/services/actor-profile.service";
 import {
   acceptToProjectApplication,
   applyToCasting,
@@ -23,6 +24,7 @@ export type ActorApplyPreview =
       age: number;
       heightCm: number | null;
       weightKg: number | null;
+      avatarUrl: string | null;
     };
 
 export async function getActorProfilePreviewForApply(): Promise<ActorApplyPreview> {
@@ -32,11 +34,12 @@ export async function getActorProfilePreviewForApply(): Promise<ActorApplyPrevie
   }
   const profile = await prisma.actorProfile.findUnique({
     where: { userId: session.user.id },
-    include: { city: true },
+    include: actorProfileCatalogInclude,
   });
   if (!profile) {
     return { error: "Сначала заполните профиль актёра" };
   }
+  const avatarUrl = profile.media[0]?.publicUrl?.trim() || null;
   return {
     actorProfileId: profile.id,
     fullName: profile.fullName,
@@ -44,6 +47,7 @@ export async function getActorProfilePreviewForApply(): Promise<ActorApplyPrevie
     age: calculateAge(new Date(profile.birthDate)),
     heightCm: profile.heightCm,
     weightKg: profile.weightKg,
+    avatarUrl,
   };
 }
 

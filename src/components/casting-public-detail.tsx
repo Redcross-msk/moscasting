@@ -5,6 +5,8 @@ import {
   castingCategoryLabelRu,
   formatShootDateParts,
 } from "@/lib/casting-display";
+import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 import { parseRoleRequirementsJson } from "@/lib/casting-role-json";
 import { castingLocationParts } from "@/lib/casting-location-lines";
 import type { ReactNode } from "react";
@@ -81,9 +83,11 @@ export function CastingPublicDetail({
   topActions?: ReactNode;
 }) {
   const producerName = casting.producerProfile.fullName?.trim() || "Продюсер";
+  const shootDates = parseShootDatesYmdFromJson(casting.shootDatesJson);
   const { dateLine, timeLine } = formatShootDateParts(
     casting.scheduledAt?.toISOString() ?? null,
     casting.shootStartTime,
+    shootDates,
   );
   const visibleMedia = casting.media.filter(
     (m) => m.publicUrl?.trim() && m.moderationStatus !== ModerationStatus.BLOCKED,
@@ -140,11 +144,11 @@ export function CastingPublicDetail({
           {timeLine ?? "—"}
         </Fact>
         {deadlineStr ? (
-          <Fact label="Дедлайн отклика" emphasis="date">
+          <Fact label="Приём откликов до" emphasis="date">
             {deadlineStr}
           </Fact>
         ) : (
-          <Fact label="Дедлайн отклика" emphasis="date">
+          <Fact label="Приём откликов до" emphasis="date">
             —
           </Fact>
         )}
@@ -155,17 +159,13 @@ export function CastingPublicDetail({
 
       <div className="grid gap-3 md:grid-cols-2">
         <Fact label="Оплата" emphasis="money">
-          {casting.paymentRub != null ? (
-            <>{casting.paymentRub.toLocaleString("ru-RU")} ₽</>
-          ) : casting.paymentInfo?.trim() ? (
-            <span className="text-base font-semibold">{casting.paymentInfo.trim()}</span>
-          ) : (
+          {formatCastingPaymentLine(casting.paymentRub, casting.paymentInfo, casting.paymentPeriod) ?? (
             <span className="text-sm font-normal text-muted-foreground">Уточняйте</span>
           )}
         </Fact>
         <Card className="border-border/80 shadow-none">
           <CardContent className="space-y-2 p-4 text-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Проект и слоты</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Проект</p>
             {casting.projectType?.trim() ? (
               <p>
                 <span className="font-medium text-muted-foreground">Тип: </span>
@@ -173,14 +173,6 @@ export function CastingPublicDetail({
               </p>
             ) : (
               <p className="text-muted-foreground">Тип не указан</p>
-            )}
-            {typeof casting.slotsNeeded === "number" && casting.slotsNeeded > 0 ? (
-              <p>
-                <span className="font-medium text-muted-foreground">Нужно человек: </span>
-                {casting.slotsNeeded}
-              </p>
-            ) : (
-              <p className="text-muted-foreground">Количество слотов не указано</p>
             )}
           </CardContent>
         </Card>
@@ -204,15 +196,6 @@ export function CastingPublicDetail({
         ) : null}
       </div>
 
-      {casting.candidateRequirements?.trim() ? (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Доп. требования</h2>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {casting.candidateRequirements.trim()}
-          </p>
-        </section>
-      ) : null}
-
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Категория и требования</h2>
         <Card className="border-border/80 shadow-none">
@@ -224,7 +207,7 @@ export function CastingPublicDetail({
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Описание проекта</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Нам требуется</h2>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{casting.description}</p>
       </section>
 

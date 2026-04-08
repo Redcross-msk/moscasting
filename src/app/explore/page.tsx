@@ -331,22 +331,11 @@ export default async function ExplorePage({
           >
             Актёры
           </Link>
-          <Link
-            href={`${base}?tab=favorites`}
-            className={cn(
-              "shrink-0 rounded-md px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
-              tab === "favorites"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80",
-            )}
-          >
-            Избранное
-          </Link>
         </div>
-        <div className="-mx-1 min-w-0 w-full overflow-x-auto px-1 [-webkit-overflow-scrolling:touch] md:mx-0 md:w-auto md:max-w-[min(100%,52rem)] md:overflow-visible md:px-0">
+        <div className="-mx-1 min-w-0 w-full overflow-x-auto px-1 py-1.5 [-webkit-overflow-scrolling:touch] md:mx-0 md:w-auto md:max-w-[min(100%,52rem)] md:overflow-visible md:px-0 md:py-0">
           <ExploreRoleBar
             role={session.user.role}
-            omitFavoritesLink
+            favoritesLinkActive={tab === "favorites"}
             className="justify-start md:justify-end"
           />
         </div>
@@ -389,6 +378,7 @@ export default async function ExplorePage({
           ) : undefined
         }
         castingsCatalogLayout={tab === "castings" || tab === "favorites"}
+        favoritesPagination={tab === "favorites"}
       />
 
       {tab === "actors" ? (

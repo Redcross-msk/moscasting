@@ -1,13 +1,17 @@
 import type { Casting, CastingCategory, City, ProducerProfile } from "@prisma/client";
 import { serializeRoleRequirements } from "@/lib/casting-display";
 import type { SerializedHomeCasting } from "@/components/home-public-browse";
+import type { CastingDbPaymentAndDates } from "@/lib/casting-payment-period";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 
-type CastingWithCardRelations = Casting & {
-  city: City;
-  producerProfile: Pick<ProducerProfile, "id" | "companyName" | "fullName">;
-};
+type CastingWithCardRelations = Casting &
+  CastingDbPaymentAndDates & {
+    city: City;
+    producerProfile: Pick<ProducerProfile, "id" | "companyName" | "fullName">;
+  };
 
 export function prismaCastingToSerializedHome(c: CastingWithCardRelations): SerializedHomeCasting {
+  const shootDates = parseShootDatesYmdFromJson(c.shootDatesJson);
   return {
     id: c.id,
     title: c.title,
@@ -21,6 +25,8 @@ export function prismaCastingToSerializedHome(c: CastingWithCardRelations): Seri
     roleRequirements: serializeRoleRequirements(c.roleRequirementsJson, c.castingCategory as CastingCategory | null),
     paymentInfo: c.paymentInfo,
     paymentRub: c.paymentRub,
+    paymentPeriod: c.paymentPeriod,
+    shootDates,
     createdAt: c.createdAt.toISOString(),
     producerProfile: {
       id: c.producerProfile.id,

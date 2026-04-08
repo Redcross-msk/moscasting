@@ -1,3 +1,5 @@
+import { isCastingPaymentPeriod, type CastingPaymentPeriod } from "@/lib/casting-payment-period";
+
 export type ActorProfileMessagePayload = {
   kind: "actor_profile";
   actorProfileId: string;
@@ -6,6 +8,8 @@ export type ActorProfileMessagePayload = {
   age: number;
   heightCm: number | null;
   weightKg: number | null;
+  /** Превью в чате; старые сообщения могли сохраниться без поля */
+  avatarUrl?: string | null;
 };
 
 export function parseActorProfilePayload(payload: unknown): ActorProfileMessagePayload | null {
@@ -14,6 +18,8 @@ export function parseActorProfilePayload(payload: unknown): ActorProfileMessageP
   if (o.kind !== "actor_profile" || typeof o.actorProfileId !== "string") return null;
   if (typeof o.fullName !== "string" || typeof o.cityName !== "string") return null;
   const age = typeof o.age === "number" ? o.age : 0;
+  const avatarUrl =
+    typeof o.avatarUrl === "string" && o.avatarUrl.trim() ? o.avatarUrl.trim() : null;
   return {
     kind: "actor_profile",
     actorProfileId: o.actorProfileId,
@@ -22,7 +28,13 @@ export function parseActorProfilePayload(payload: unknown): ActorProfileMessageP
     age,
     heightCm: typeof o.heightCm === "number" ? o.heightCm : null,
     weightKg: typeof o.weightKg === "number" ? o.weightKg : null,
+    avatarUrl,
   };
+}
+
+function parsePaymentPeriodJson(v: unknown): CastingPaymentPeriod | null {
+  if (typeof v !== "string") return null;
+  return isCastingPaymentPeriod(v) ? v : null;
 }
 
 export type CastingInviteDetailsPayload = {
@@ -37,6 +49,8 @@ export type CastingInviteDetailsPayload = {
   workHoursNote: string | null;
   paymentInfo: string | null;
   paymentRub: number | null;
+  paymentPeriod: CastingPaymentPeriod | null;
+  shootDates: string[] | null;
   cityName: string;
 };
 
@@ -46,6 +60,16 @@ export function parseCastingInviteDetailsPayload(payload: unknown): CastingInvit
   if (o.kind !== "casting_invite_details" || typeof o.castingId !== "string" || typeof o.title !== "string") {
     return null;
   }
+  const shootDatesRaw = o.shootDates;
+  let shootDates: string[] | null = null;
+  if (Array.isArray(shootDatesRaw)) {
+    const dates = shootDatesRaw
+      .filter((x): x is string => typeof x === "string")
+      .map((s) => s.trim())
+      .filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s));
+    shootDates = dates.length ? [...new Set(dates)].sort() : null;
+  }
+
   return {
     kind: "casting_invite_details",
     castingId: o.castingId,
@@ -58,6 +82,8 @@ export function parseCastingInviteDetailsPayload(payload: unknown): CastingInvit
     workHoursNote: typeof o.workHoursNote === "string" ? o.workHoursNote : null,
     paymentInfo: typeof o.paymentInfo === "string" ? o.paymentInfo : null,
     paymentRub: typeof o.paymentRub === "number" ? o.paymentRub : null,
+    paymentPeriod: parsePaymentPeriodJson(o.paymentPeriod),
+    shootDates,
     cityName: typeof o.cityName === "string" ? o.cityName : "",
   };
 }

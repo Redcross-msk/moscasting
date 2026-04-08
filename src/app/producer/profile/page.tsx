@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { CastingStatus, ModerationStatus, ReviewDirection } from "@prisma/client";
 import { ProducerProfileView } from "@/components/producer-profile-view";
+import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 
 export default async function ProducerProfileCabinetPage() {
   const session = await auth();
@@ -56,11 +57,14 @@ export default async function ProducerProfileCabinetPage() {
     moderationComment: c.moderationComment,
   });
 
+  const mediaWithLikes = await attachPortfolioLikesToPhotos(profile.media, session?.user?.id);
+
   return (
     <ProducerProfileView
       variant="cabinet"
       editHref="/producer/profile/edit"
       castingLinkPrefix="/producer/castings"
+      canLikePortfolioPhotos={Boolean(session?.user?.id)}
       profile={{
         companyName: profile.companyName,
         fullName: profile.fullName,
@@ -71,12 +75,14 @@ export default async function ProducerProfileCabinetPage() {
         moderationStatus: profile.moderationStatus,
         moderationComment: profile.moderationComment,
       }}
-      media={profile.media.map((m) => ({
+      media={mediaWithLikes.map((m) => ({
         id: m.id,
         publicUrl: m.publicUrl,
         storageKey: m.storageKey,
         isAvatar: m.isAvatar,
         moderationStatus: m.moderationStatus,
+        likeCount: m.likeCount,
+        likedByMe: m.likedByMe,
       }))}
       castings={activeCastings.map(mapRow)}
       completedCastings={completedCastings.map(mapRow)}

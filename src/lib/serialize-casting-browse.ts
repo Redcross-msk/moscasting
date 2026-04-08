@@ -1,6 +1,8 @@
 import type { CastingCategory } from "@prisma/client";
+import type { CastingPaymentPeriod } from "@/lib/casting-payment-period";
 import type { SerializedHomeCasting } from "@/components/home-public-browse";
 import { serializeRoleRequirements } from "@/lib/casting-display";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 
 type CastingBrowseRow = {
   id: string;
@@ -17,6 +19,8 @@ type CastingBrowseRow = {
   roleRequirementsJson: unknown;
   paymentInfo: string | null;
   paymentRub: number | null;
+  paymentPeriod: CastingPaymentPeriod | null;
+  shootDatesJson: unknown;
   createdAt: Date;
   producerProfile: { id: string; companyName: string; fullName: string };
 };
@@ -26,6 +30,7 @@ export function serializeCastingForBrowse(
   extras?: { myApplicationChatId?: string | null; isFavorite?: boolean },
 ): SerializedHomeCasting {
   const cat = c.castingCategory;
+  const shootDates = parseShootDatesYmdFromJson(c.shootDatesJson);
   return {
     id: c.id,
     title: c.title,
@@ -41,6 +46,8 @@ export function serializeCastingForBrowse(
     roleRequirements: serializeRoleRequirements(c.roleRequirementsJson, cat),
     paymentInfo: c.paymentInfo,
     paymentRub: c.paymentRub ?? null,
+    paymentPeriod: c.paymentPeriod,
+    shootDates,
     createdAt: c.createdAt.toISOString(),
     producerProfile: {
       id: c.producerProfile.id,

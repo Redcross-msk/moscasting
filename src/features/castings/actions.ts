@@ -5,6 +5,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { CastingCategory, CastingStatus, ModerationStatus, Prisma } from "@prisma/client";
+import type { CastingPaymentPeriod } from "@/lib/casting-payment-period";
+import { buildPaymentInfoForDb, parseCastingPaymentPeriod } from "@/lib/casting-payment-display";
+import {
+  parseShootDatesJsonFromForm,
+  scheduledAtFromShootDatesYmd,
+} from "@/lib/casting-shoot-dates";
+import { closeCastingsPastApplicationDeadline } from "@/server/services/casting.service";
 import {
   createCasting,
   updateCasting,
@@ -38,15 +45,21 @@ function sharedCastingPayload(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const citySlug = String(formData.get("citySlug") ?? "moscow");
-  const paymentInfo = String(formData.get("paymentInfo") ?? "").trim() || undefined;
   const projectType = String(formData.get("projectType") ?? "").trim() || undefined;
-  const candidateRequirements = String(formData.get("candidateRequirements") ?? "").trim() || undefined;
-  const slotsNeededRaw = formData.get("slotsNeeded");
-  const slotsNeeded = slotsNeededRaw ? parseInt(String(slotsNeededRaw), 10) : undefined;
   const paymentRubRaw = formData.get("paymentRub");
-  const paymentRub = paymentRubRaw ? parseInt(String(paymentRubRaw), 10) : undefined;
+  const paymentRubParsed = paymentRubRaw ? parseInt(String(paymentRubRaw), 10) : NaN;
+  const paymentRub = Number.isFinite(paymentRubParsed) ? paymentRubParsed : undefined;
+  const paymentPeriodRaw = parseCastingPaymentPeriod(String(formData.get("paymentPeriod") ?? ""));
+  const paymentPeriodDb: CastingPaymentPeriod | undefined =
+    paymentRub != null && paymentPeriodRaw ? paymentPeriodRaw : undefined;
+  const paymentInfo = buildPaymentInfoForDb(paymentRub, paymentPeriodRaw);
+
+  const shootDatesYmd = parseShootDatesJsonFromForm(String(formData.get("shootDatesJson") ?? ""));
+  const shootDatesJson: Prisma.InputJsonValue | undefined =
+    shootDatesYmd.length > 0 ? shootDatesYmd : undefined;
+  const scheduledAt = scheduledAtFromShootDatesYmd(shootDatesYmd);
+
   const deadline = formData.get("applicationDeadline");
-  const scheduled = formData.get("scheduledAt");
   const shootStartTime = String(formData.get("shootStartTime") ?? "").trim() || undefined;
   const workHoursNote = String(formData.get("workHoursNote") ?? "").trim() || undefined;
   const metroStation = String(formData.get("metroStation") ?? "").trim() || undefined;
@@ -63,11 +76,12 @@ function sharedCastingPayload(formData: FormData) {
     citySlug,
     paymentInfo,
     projectType,
-    candidateRequirements,
-    slotsNeeded: Number.isFinite(slotsNeeded) ? slotsNeeded : undefined,
-    paymentRub: Number.isFinite(paymentRub) ? paymentRub : undefined,
+    paymentRub,
+    paymentPeriod: paymentPeriodDb,
+    shootDatesJson,
+    shootDatesYmd,
+    scheduledAt,
     deadline,
-    scheduled,
     shootStartTime,
     workHoursNote,
     metroStation,
@@ -88,6 +102,7 @@ export async function createCastingAction(formData: FormData) {
   if (!profile) throw new Error("Нет профиля продюсера");
 
   const p = sharedCastingPayload(formData);
+  if (p.shootDatesYmd.length === 0) throw new Error("Добавьте хотя бы одну дату съёмки");
 
   const city = await prisma.city.findUnique({ where: { slug: p.citySlug } });
   if (!city) throw new Error("Город не найден");
@@ -112,9 +127,11 @@ export async function createCastingAction(formData: FormData) {
     description: p.description,
     paymentInfo: p.paymentInfo,
     projectType: p.projectType,
-    candidateRequirements: p.candidateRequirements,
-    slotsNeeded: p.slotsNeeded,
+    candidateRequirements: null,
+    slotsNeeded: null,
     paymentRub: p.paymentRub,
+    paymentPeriod: p.paymentPeriod,
+    shootDatesJson: p.shootDatesJson ?? undefined,
     shootStartTime: p.shootStartTime,
     workHoursNote: p.workHoursNote,
     metroStation: p.metroStation,
@@ -123,13 +140,14 @@ export async function createCastingAction(formData: FormData) {
     castingCategory: p.castingCategory,
     roleRequirementsJson: p.roleRequirementsJson,
     applicationDeadline: p.deadline ? new Date(String(p.deadline)) : undefined,
-    scheduledAt: p.scheduled ? new Date(String(p.scheduled)) : undefined,
+    scheduledAt: p.scheduledAt,
     status: CastingStatus.DRAFT,
     moderationStatus: ModerationStatus.PENDING,
     moderationComment: null,
     city: { connect: { id: city.id } },
-  });
+  } as Parameters<typeof createCasting>[1]);
 
+  await closeCastingsPastApplicationDeadline();
   revalidatePath("/producer/castings");
   revalidatePath("/admin/moderation");
   redirect("/producer/castings");
@@ -147,15 +165,18 @@ export async function updateCastingFromFormAction(formData: FormData) {
   if (!profile) throw new Error("Нет профиля");
 
   const p = sharedCastingPayload(formData);
+  if (p.shootDatesYmd.length === 0) throw new Error("Добавьте хотя бы одну дату съёмки");
 
   await updateCasting(castingId, profile.id, {
     title: p.title,
     description: p.description,
     paymentInfo: p.paymentInfo,
     projectType: p.projectType,
-    candidateRequirements: p.candidateRequirements,
-    slotsNeeded: p.slotsNeeded,
+    candidateRequirements: null,
+    slotsNeeded: null,
     paymentRub: p.paymentRub,
+    paymentPeriod: p.paymentPeriod ?? null,
+    shootDatesJson: p.shootDatesJson !== undefined ? p.shootDatesJson : Prisma.DbNull,
     shootStartTime: p.shootStartTime,
     workHoursNote: p.workHoursNote,
     metroStation: p.metroStation,
@@ -164,12 +185,13 @@ export async function updateCastingFromFormAction(formData: FormData) {
     castingCategory: p.castingCategory,
     roleRequirementsJson: p.roleRequirementsJson,
     applicationDeadline: p.deadline ? new Date(String(p.deadline)) : undefined,
-    scheduledAt: p.scheduled ? new Date(String(p.scheduled)) : undefined,
+    scheduledAt: p.scheduledAt ?? null,
     status: CastingStatus.DRAFT,
     moderationStatus: ModerationStatus.PENDING,
     moderationComment: null,
-  });
+  } as Prisma.CastingUpdateInput);
 
+  await closeCastingsPastApplicationDeadline();
   revalidatePath("/producer/castings");
   revalidatePath(`/producer/castings/${castingId}`);
   revalidatePath(`/producer/castings/${castingId}/edit`);

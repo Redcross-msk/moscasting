@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ApplicationStatus } from "@prisma/client";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatMessageContent } from "@/components/chat-message-content";
+import {
+  ChatThreadMessageBubble,
+  type ChatOutgoingReceipt,
+} from "@/components/chat-thread-message-bubble";
+import { ChatInboxUnreadDot } from "@/components/chat-inbox-unread-dot";
 import { ProducerApplicationChatToolbar } from "@/components/producer-application-chat-toolbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,16 +17,40 @@ import {
   fetchDirectThreadPanelAction,
   sendDirectThreadMessageAction,
 } from "@/features/chat/direct-actions";
+import { useInboxPageSize } from "@/hooks/use-inbox-page-size";
+import {
+  CHAT_INBOX_SORT_OPTIONS,
+  type ChatInboxSortMode,
+  sortChatInboxRows,
+} from "@/lib/chat-inbox-sort";
+import { cn, formatActorSurnameAndFirstName } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 
-type InboxCasting = {
-  id: string;
-  title: string;
-  chats: { chatId: string; actorName: string; actorProfileId: string }[];
+export type ProducerInboxItem = {
+  kind: "application";
+  castingId: string;
+  castingTitle: string;
+  chatId: string;
+  actorName: string;
+  actorProfileId: string;
+  preview: string;
+  applicationSubmittedAt: string;
+  lastMessageIsMine: boolean | null;
+  hasUnread: boolean;
 };
 
-type DirectRow = { threadId: string; actorName: string; actorProfileId: string; preview: string };
+type MergedRow = ProducerInboxItem & { sortDateMs: number };
+
+type PanelMessage = {
+  id: string;
+  senderId: string;
+  senderLabel: string;
+  createdAtIso: string;
+  timeHm: string;
+  receipt: ChatOutgoingReceipt;
+  body: string;
+  payload?: unknown;
+};
 
 type PanelApp = {
   kind: "application";
@@ -31,7 +60,7 @@ type PanelApp = {
   closedAt: string | null;
   applicationId: string;
   applicationStatus: ApplicationStatus;
-  messages: { id: string; senderId: string; senderEmail: string; body: string; payload: unknown }[];
+  messages: PanelMessage[];
 };
 
 type PanelDirect = {
@@ -39,34 +68,34 @@ type PanelDirect = {
   threadId: string;
   title: string;
   subtitle: string;
-  messages: { id: string; senderId: string; senderEmail: string; body: string }[];
+  messages: PanelMessage[];
 };
 
 type Panel = PanelApp | PanelDirect | null;
 
 export function ProducerChatsInbox({
-  castings,
-  direct,
+  items,
   currentUserId,
   directChatDisabledMessage,
 }: {
-  castings: InboxCasting[];
-  direct: DirectRow[];
+  items: ProducerInboxItem[];
   currentUserId: string;
-  /** Если Prisma Client без моделей личных чатов — показываем подсказку, страница не падает. */
   directChatDisabledMessage?: string | null;
 }) {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
   const [pending, start] = useTransition();
   const [composer, setComposer] = useState("");
+  const [sortMode, setSortMode] = useState<ChatInboxSortMode>("respond_new");
+  const [page, setPage] = useState(1);
+  const pageSize = useInboxPageSize();
+  const [clearedUnread, setClearedUnread] = useState<Record<string, true>>({});
 
   const loadApp = useCallback((chatId: string) => {
     start(async () => {
       const data = await fetchApplicationChatPanelAction(chatId);
       setPanel(data);
+      if (data) setClearedUnread((p) => ({ ...p, [`app:${chatId}`]: true }));
     });
   }, []);
 
@@ -74,6 +103,7 @@ export function ProducerChatsInbox({
     start(async () => {
       const data = await fetchDirectThreadPanelAction(threadId);
       setPanel(data);
+      if (data) setClearedUnread((p) => ({ ...p, [`dir:${threadId}`]: true }));
     });
   }, []);
 
@@ -83,6 +113,29 @@ export function ProducerChatsInbox({
     if (d) loadDirect(d);
     else if (ch) loadApp(ch);
   }, [searchParams, loadDirect, loadApp]);
+
+  const merged = useMemo((): MergedRow[] => {
+    const rows: MergedRow[] = items.map((it) => ({
+      ...it,
+      sortDateMs: Date.parse(it.applicationSubmittedAt),
+    }));
+    return sortChatInboxRows(rows, sortMode);
+  }, [items, sortMode]);
+
+  const totalPages = Math.max(1, Math.ceil(merged.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageSlice = useMemo(
+    () => merged.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [merged, safePage, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [sortMode, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   function sendDirect() {
     const text = composer.trim();
@@ -94,119 +147,145 @@ export function ProducerChatsInbox({
     });
   }
 
-  function closePanel() {
-    setPanel(null);
-    router.replace(pathname);
-  }
+  const hasAny = merged.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        !panel && "space-y-4",
+        panel && "min-h-0",
+      )}
+    >
+      {!panel ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h1 className="text-2xl font-bold">Чаты</h1>
+          {hasAny ? (
+            <label className="flex w-full flex-col gap-1 sm:w-auto sm:min-w-[min(100%,20rem)] sm:max-w-sm">
+              <span className="text-xs text-muted-foreground sm:sr-only">Сортировка</span>
+              <select
+                className={cn(
+                  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as ChatInboxSortMode)}
+              >
+                {CHAT_INBOX_SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
       {directChatDisabledMessage ? (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
           {directChatDisabledMessage}
         </div>
       ) : null}
-      <div className="grid min-h-0 gap-0 md:grid-cols-12 md:items-start md:gap-4 md:min-h-[480px]">
-      <aside
+      <div
         className={cn(
-          "flex flex-col gap-4 border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4",
-          panel ? "hidden md:flex" : "flex",
+          "min-h-0 gap-0 md:grid md:grid-cols-12 md:items-stretch md:gap-4",
+          panel
+            ? "flex flex-1 flex-col max-md:min-h-0 md:min-h-[min(560px,calc(100dvh-10rem))] md:max-h-[calc(100dvh-10rem)]"
+            : "md:min-h-[480px]",
         )}
       >
-        <div className="rounded-xl border border-border bg-muted/25 p-3 shadow-sm">
-          <h2 className="mb-3 border-b border-border/80 pb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-            Личные сообщения
-          </h2>
-          {direct.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет личных диалогов</p>
-          ) : (
-            <ul className="space-y-1">
-              {direct.map((d) => (
-                <li key={d.threadId}>
-                  <button
-                    type="button"
-                    onClick={() => loadDirect(d.threadId)}
-                    className={cn(
-                      "w-full rounded-lg px-2 py-2.5 text-left text-sm transition hover:bg-background/80",
-                      panel?.kind === "direct" && panel.threadId === d.threadId && "bg-background font-medium shadow-sm ring-1 ring-primary/25",
-                    )}
-                  >
-                    <span className="block font-medium">{d.actorName}</span>
-                    {d.preview ? (
-                      <span className="line-clamp-2 text-xs text-muted-foreground">{d.preview}</span>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
+        <aside
+          className={cn(
+            "border-b border-border pb-4 md:col-span-4 md:flex md:min-h-0 md:flex-col md:border-b-0 md:border-r md:pb-0 md:pr-4",
+            panel ? "hidden md:flex" : "flex",
           )}
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-          <h2 className="mb-3 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-            Чаты по кастингам
-          </h2>
-          {castings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет чатов по кастингам</p>
-          ) : (
-            <ul className="space-y-3">
-              {castings.map((c) => (
-                <li key={c.id} className="rounded-lg border border-border/70 bg-muted/15 p-2">
-                  <p className="border-b border-border/60 px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-primary">
-                    {c.title}
-                  </p>
-                  <ul className="mt-2 space-y-0.5">
-                    {c.chats.map((ch) => (
-                      <li key={ch.chatId}>
-                        <button
-                          type="button"
-                          onClick={() => loadApp(ch.chatId)}
-                          className={cn(
-                            "w-full rounded-md px-2 py-2 text-left text-sm transition hover:bg-background/70",
-                            panel?.kind === "application" &&
-                              panel.chatId === ch.chatId &&
-                              "bg-primary/10 font-medium shadow-sm ring-1 ring-primary/30",
-                          )}
-                        >
-                          {ch.actorName}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </aside>
-
-      <section
-        className={cn(
-          "flex flex-col md:col-span-8 md:min-h-[480px]",
-          !panel && "hidden md:flex",
-          panel && "flex min-h-[min(420px,70dvh)]",
-        )}
-      >
-        {!panel ? (
-          <div className="flex min-h-[480px] flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
-            Выберите диалог в списке слева — отклик по кастингу или личный чат.
+        >
+          <div className="flex w-full flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+            {!hasAny ? (
+              <p className="text-sm text-muted-foreground">Пока нет чатов</p>
+            ) : (
+              <>
+                <ul className="flex flex-col gap-2.5">
+                  {pageSlice.map((row) => (
+                    <li key={row.chatId}>
+                      <button
+                        type="button"
+                        onClick={() => loadApp(row.chatId)}
+                        className={cn(
+                          "flex w-full items-start gap-2 rounded-lg border border-border bg-background/90 px-3 py-3 text-left text-sm shadow-sm transition hover:bg-muted/40 active:bg-muted/60",
+                          panel?.kind === "application" &&
+                            panel.chatId === row.chatId &&
+                            "border-primary/40 bg-primary/5 font-medium ring-2 ring-primary/20",
+                        )}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold leading-snug">{row.castingTitle}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {formatActorSurnameAndFirstName(row.actorName)}
+                          </span>
+                          {row.preview ? (
+                            <span className="mt-2 block border-t border-border/50 pt-2 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                              {row.preview}
+                            </span>
+                          ) : null}
+                        </span>
+                        <ChatInboxUnreadDot
+                          show={row.hasUnread && !clearedUnread[`app:${row.chatId}`]}
+                        />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {totalPages > 1 ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 min-w-[5.5rem]"
+                      disabled={safePage <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Назад
+                    </Button>
+                    <span className="px-2 text-sm tabular-nums text-muted-foreground">
+                      {safePage} / {totalPages}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 min-w-[5.5rem]"
+                      disabled={safePage >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Вперёд
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
-        ) : (
-          <>
-            <div className="mb-3 flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-start sm:justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 w-full shrink-0 sm:order-2 sm:w-auto md:hidden"
-                onClick={closePanel}
-              >
-                ← К списку чатов
-              </Button>
-              <div className="min-w-0 flex-1 space-y-3 sm:order-1">
+        </aside>
+
+        <section
+          className={cn(
+            "flex min-h-0 flex-col overflow-hidden md:col-span-8 md:min-h-0",
+            !panel && "hidden md:flex md:min-h-[480px]",
+            panel && "max-md:flex-1 md:h-full md:max-h-none",
+          )}
+        >
+          {!panel ? (
+            <div className="flex min-h-[480px] flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:p-8">
+              Выберите чат в списке слева.
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 shrink-0 space-y-3 border-b border-border pb-3">
                 <div>
                   <h2 className="text-lg font-bold leading-tight">{panel.title}</h2>
-                  <p className="text-sm text-muted-foreground">{panel.subtitle}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{panel.subtitle}</p>
                 </div>
                 {panel.kind === "application" ? (
                   <ProducerApplicationChatToolbar
@@ -216,58 +295,56 @@ export function ProducerChatsInbox({
                   />
                 ) : null}
               </div>
-            </div>
-            <div className="min-h-[min(280px,40dvh)] flex-1 space-y-2 overflow-y-auto rounded-xl border border-border/80 bg-muted/20 p-2 sm:min-h-[240px] sm:space-y-2 sm:p-3">
-              {panel.messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={
-                    m.senderId === currentUserId
-                      ? "ml-auto max-w-[min(100%,20rem)] rounded-2xl border border-primary/25 bg-white/90 px-3 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:border-primary/35 dark:bg-background/85 sm:max-w-[80%]"
-                      : "mr-auto max-w-[min(100%,20rem)] rounded-2xl border border-border bg-white/85 px-3 py-2 text-sm text-foreground shadow-sm backdrop-blur-sm dark:bg-background/80 sm:max-w-[80%]"
-                  }
-                >
-                  <p className="text-[10px] opacity-70 sm:text-xs">{m.senderEmail}</p>
-                  {panel.kind === "application" ? (
-                    <ChatMessageContent body={m.body} payload={(m as { payload?: unknown }).payload} />
-                  ) : (
-                    <p className="whitespace-pre-wrap">{m.body}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-            {panel.kind === "application" ? (
-              <div className="mt-2 sm:mt-3">
-                <ChatComposerUnified
-                  chatId={panel.chatId}
-                  disabled={!!panel.closedAt}
-                  compact
-                  onAfterSend={() => loadApp(panel.chatId)}
-                />
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border/80 bg-muted/20 p-2 sm:p-3">
+                {panel.messages.map((m) => (
+                  <ChatThreadMessageBubble
+                    key={m.id}
+                    isMine={m.senderId === currentUserId}
+                    senderLabel={m.senderLabel}
+                    timeHm={m.timeHm}
+                    createdAtIso={m.createdAtIso}
+                    receipt={m.receipt}
+                  >
+                    {panel.kind === "application" ? (
+                      <ChatMessageContent body={m.body} payload={m.payload} />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{m.body}</p>
+                    )}
+                  </ChatThreadMessageBubble>
+                ))}
               </div>
-            ) : (
-              <form
-                className="mt-2 flex flex-col gap-2 sm:mt-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendDirect();
-                }}
-              >
-                <Textarea
-                  value={composer}
-                  onChange={(e) => setComposer(e.target.value)}
-                  placeholder="Сообщение…"
-                  rows={2}
-                  className="min-h-[2.5rem] text-sm"
-                />
-                <Button type="submit" size="sm" className="h-9 w-full sm:w-auto" disabled={pending || !composer.trim()}>
-                  Отправить
-                </Button>
-              </form>
-            )}
-          </>
-        )}
-      </section>
+              {panel.kind === "application" ? (
+                <div className="mt-2 shrink-0 sm:mt-3">
+                  <ChatComposerUnified
+                    chatId={panel.chatId}
+                    disabled={!!panel.closedAt}
+                    compact
+                    onAfterSend={() => loadApp(panel.chatId)}
+                  />
+                </div>
+              ) : (
+                <form
+                  className="mt-2 flex shrink-0 flex-col gap-2 sm:mt-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendDirect();
+                  }}
+                >
+                  <Textarea
+                    value={composer}
+                    onChange={(e) => setComposer(e.target.value)}
+                    placeholder="Сообщение…"
+                    rows={2}
+                    className="min-h-[2.5rem] text-sm"
+                  />
+                  <Button type="submit" size="sm" className="h-9 w-full sm:w-auto" disabled={pending || !composer.trim()}>
+                    Отправить
+                  </Button>
+                </form>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

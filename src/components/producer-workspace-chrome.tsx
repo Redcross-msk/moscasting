@@ -1,25 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { ExploreRoleBar } from "@/components/explore-role-bar";
 import { Button } from "@/components/ui/button";
 
 export function ProducerWorkspaceChrome({ role, children }: { role: string; children: React.ReactNode }) {
-  const path = usePathname();
-  const backToProfile = path === "/producer/profile/edit";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const backToProfile = pathname === "/producer/profile/edit";
+  const immersiveChat =
+    pathname.startsWith("/producer/chats/") ||
+    (pathname === "/producer/chats" &&
+      (Boolean(searchParams.get("chat")) || Boolean(searchParams.get("direct"))));
+
+  if (immersiveChat) {
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col max-md:max-h-[calc(100dvh-4.25rem)] max-md:overflow-hidden">
+        <div className="mb-3 shrink-0 border-b border-border pb-3">
+          <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
+            <Link href="/producer/chats">
+              <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
+              К списку чатов
+            </Link>
+          </Button>
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6">
-      <div className="flex min-w-0 flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 border-b border-border pb-4 lg:flex-nowrap lg:items-center lg:justify-between">
         <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
           <Link href={backToProfile ? "/producer/profile" : "/explore?tab=castings"}>
             <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
             {backToProfile ? "Назад" : "На главную"}
           </Link>
         </Button>
-        <div className="min-w-0 w-full sm:w-auto sm:max-w-[min(100%,42rem)]">
+        <div className="min-w-0 flex-1 lg:w-auto lg:max-w-[min(100%,42rem)] lg:flex-none">
           <ExploreRoleBar role={role} />
         </div>
       </div>

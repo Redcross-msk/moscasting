@@ -2,11 +2,12 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
+import { normalizePortfolioImageBuffer } from "@/server/media/portfolio-image-normalize";
 import { savePublicUpload } from "@/server/uploads/save-public-upload";
 
 const MAX_PRODUCER_FILES = 5;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
 export type ProducerPortfolioPhotoAdded = {
   id: string;
@@ -19,19 +20,14 @@ export type ProducerPortfolioPhotosUploadOutcome =
   | { error: string; added?: undefined }
   | { error?: undefined; added: ProducerPortfolioPhotoAdded[] };
 
-function extFromMime(mime: string): string {
-  if (mime === "image/jpeg") return "jpg";
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "bin";
-}
-
 function effectiveMime(file: File): string {
   if (file.type && file.type !== "application/octet-stream") return file.type;
   const n = file.name.toLowerCase();
   if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
   if (n.endsWith(".png")) return "image/png";
   if (n.endsWith(".webp")) return "image/webp";
+  if (n.endsWith(".heic")) return "image/heic";
+  if (n.endsWith(".heif")) return "image/heif";
   return file.type || "";
 }
 
@@ -60,11 +56,13 @@ export async function runProducerPortfolioPhotosUpload(
   try {
     for (const file of valid) {
       if (added >= maxAdd) break;
-      const mime = effectiveMime(file);
-      if (!IMAGE_TYPES.has(mime)) continue;
+      const mimeIn = effectiveMime(file);
+      if (!IMAGE_TYPES.has(mimeIn)) continue;
       if (file.size > MAX_PHOTO_BYTES) continue;
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const ext = extFromMime(mime);
+      const raw = Buffer.from(await file.arrayBuffer());
+      const normalized = await normalizePortfolioImageBuffer(raw, mimeIn);
+      if (!normalized) continue;
+      const { buffer, mime: outMime, ext } = normalized;
       const rel = `producer/${producerProfileId}/${randomUUID()}.${ext}`;
       const publicUrl = await savePublicUpload(rel, buffer);
       sortBase += 1;
@@ -73,7 +71,7 @@ export async function runProducerPortfolioPhotosUpload(
           kind: MediaKind.PHOTO,
           storageKey: rel,
           publicUrl,
-          mimeType: mime,
+          mimeType: outMime,
           producerProfileId,
           sortOrder: sortBase,
           isAvatar: false,

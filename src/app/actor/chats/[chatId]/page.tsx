@@ -4,20 +4,29 @@ import { getChatWithAccess } from "@/server/services/chat.service";
 import { ChatMessageContent } from "@/components/chat-message-content";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatReviewSection } from "@/components/chat-review-section";
+import { ChatThreadMessageBubble } from "@/components/chat-thread-message-bubble";
+import { chatSenderPublicLabel, formatChatMessageTimeHm } from "@/lib/chat-sender-display";
+import { formatActorSurnameAndFirstName } from "@/lib/utils";
 
 export default async function ActorChatPage({ params }: { params: Promise<{ chatId: string }> }) {
   const session = await auth();
   const { chatId } = await params;
-  const chat = await getChatWithAccess(chatId, session!.user.id);
+  const chat = await getChatWithAccess(chatId, session!.user.id, { markRead: true });
   if (!chat) notFound();
 
   const app = chat.application;
+  const counterpartyUserId =
+    app.actorProfile.userId === session!.user.id ? app.producerProfile.userId : app.actorProfile.userId;
+
+  const producerLine =
+    app.producerProfile.companyName?.trim() ||
+    formatActorSurnameAndFirstName(app.producerProfile.fullName);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-2">
+      <div className="shrink-0">
         <h1 className="text-xl font-bold">{app.casting.title}</h1>
-        <p className="text-sm text-muted-foreground">Переписка по отклику на кастинг</p>
+        <p className="text-sm text-muted-foreground">{producerLine} · отклик</p>
       </div>
 
       <ChatReviewSection
@@ -28,23 +37,30 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
         role="ACTOR"
       />
 
-      <div className="min-h-[240px] space-y-2 rounded-xl border border-border bg-card p-2 shadow-sm sm:min-h-[280px] sm:space-y-3 sm:p-3">
-        {chat.messages.map((m) => (
-          <div
-            key={m.id}
-            className={
-              m.senderId === session!.user.id
-                ? "ml-auto max-w-[min(100%,20rem)] rounded-2xl bg-primary px-2.5 py-2 text-sm text-primary-foreground sm:max-w-[85%] sm:px-3"
-                : "mr-auto max-w-[min(100%,20rem)] rounded-2xl bg-muted px-2.5 py-2 text-sm sm:max-w-[85%] sm:px-3"
-            }
-          >
-            <p className="text-[10px] opacity-70 sm:text-xs">{m.sender.email}</p>
-            <ChatMessageContent body={m.body} payload={m.payload} />
-          </div>
-        ))}
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 shadow-sm sm:p-3">
+        {chat.messages.map((m) => {
+          const isMine = m.senderId === session!.user.id;
+          const readByCounterparty =
+            isMine && m.reads.some((r) => r.userId === counterpartyUserId);
+          const receipt = isMine ? (readByCounterparty ? "read" : "sent") : "none";
+          return (
+            <ChatThreadMessageBubble
+              key={m.id}
+              isMine={isMine}
+              senderLabel={chatSenderPublicLabel(m.sender)}
+              timeHm={formatChatMessageTimeHm(m.createdAt)}
+              createdAtIso={m.createdAt.toISOString()}
+              receipt={receipt}
+            >
+              <ChatMessageContent body={m.body} payload={m.payload} />
+            </ChatThreadMessageBubble>
+          );
+        })}
       </div>
 
-      <ChatComposerUnified chatId={chatId} disabled={!!chat.closedAt} />
+      <div className="shrink-0">
+        <ChatComposerUnified chatId={chatId} disabled={!!chat.closedAt} />
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +16,11 @@ import {
 import { User } from "lucide-react";
 import { CastingQuickApply } from "@/components/casting-quick-apply";
 import { FavoriteHeartButton } from "@/components/favorite-heart-button";
+import type { CastingPaymentPeriod } from "@/lib/casting-payment-period";
 import { castingCategoryLabelRu, formatShootDateTimeRu, type SerializedRoleReq } from "@/lib/casting-display";
+import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 import { castingLocationParts } from "@/lib/casting-location-lines";
+import { useFavoritesPageSizes } from "@/hooks/use-favorites-page-sizes";
 import { calculateAge, cn, russianYearsWord } from "@/lib/utils";
 
 export type SerializedHomeCasting = {
@@ -33,6 +36,8 @@ export type SerializedHomeCasting = {
   roleRequirements: SerializedRoleReq | null;
   paymentInfo: string | null;
   paymentRub: number | null;
+  paymentPeriod: CastingPaymentPeriod | null;
+  shootDates: string[] | null;
   createdAt: string;
   producerProfile: { id: string; companyName: string; fullName: string };
   /** Если текущий пользователь — актёр и уже откликнулся */
@@ -72,7 +77,7 @@ function RoleReqBlock({ r }: { r: SerializedRoleReq }) {
   );
 }
 
-function CastingRow({
+export function CastingRow({
   c,
   canBrowse,
   loading,
@@ -80,6 +85,8 @@ function CastingRow({
   catalogLayout,
   userRole,
   showFavorite,
+  historyMode,
+  statusFooter,
 }: {
   c: SerializedHomeCasting;
   canBrowse: boolean;
@@ -88,19 +95,21 @@ function CastingRow({
   catalogLayout?: boolean;
   userRole?: string;
   showFavorite?: boolean;
+  /** Как карточка в каталоге, но без цены, кнопок и избранного (история откликов). */
+  historyMode?: boolean;
+  /** Подпись статуса отклика (только с historyMode). */
+  statusFooter?: string;
 }) {
-  const paymentLine =
-    c.paymentRub != null ? (
-      <span className="text-sm font-bold tabular-nums text-foreground sm:text-base">
-        {c.paymentRub.toLocaleString("ru-RU")} ₽
-      </span>
-    ) : c.paymentInfo ? (
-      <span className="text-xs font-semibold leading-snug text-foreground sm:text-sm">{c.paymentInfo}</span>
-    ) : null;
+  const payStr = formatCastingPaymentLine(c.paymentRub, c.paymentInfo, c.paymentPeriod);
+  const paymentLine = payStr ? (
+    <span className="text-sm font-bold tabular-nums text-foreground sm:text-base sm:font-semibold">
+      {payStr}
+    </span>
+  ) : null;
 
   const producerName = c.producerProfile.fullName?.trim() || c.producerProfile.companyName || "Продюсер";
 
-  const scheduleLine = formatShootDateTimeRu(c.scheduledAt, c.shootStartTime);
+  const scheduleLine = formatShootDateTimeRu(c.scheduledAt, c.shootStartTime, c.shootDates);
   const loc = castingLocationParts({
     metroStation: c.metroStation,
     addressLine: c.addressLine,
@@ -192,8 +201,10 @@ function CastingRow({
         variant="catalogSide"
       />
     ) : catalogLayout && loading ? (
-      <div className="h-9 w-full max-w-full shrink-0 rounded-md bg-muted md:max-w-[220px]" aria-hidden />
+      <div className="h-11 w-full max-w-full shrink-0 rounded-xl bg-muted md:max-w-[220px]" aria-hidden />
     ) : null;
+
+  const showHeart = Boolean(catalogLayout && showFavorite && userRole);
 
   /** Каталог: на телефоне — полная ширина текста, блок цена/автор/кнопка снизу; на md+ — колонка справа */
   const sideCatalog = (
@@ -220,7 +231,22 @@ function CastingRow({
         </div>
         {paymentLine ? <div className="shrink-0 text-right leading-tight">{paymentLine}</div> : null}
       </div>
-      {applyBlock ? <div className="w-full md:max-w-[220px] md:self-end">{applyBlock}</div> : null}
+      {applyBlock ? (
+        showHeart ? (
+          <div className="flex w-full flex-row gap-2 items-stretch md:max-w-[220px] md:flex-col md:gap-3 md:self-end">
+            <div className="min-w-0 flex-1 md:w-full">{applyBlock}</div>
+            <FavoriteHeartButton
+              kind="casting"
+              targetId={c.id}
+              initial={Boolean(c.isFavorite)}
+              presentation="castingCatalog"
+              label="Избранный кастинг"
+            />
+          </div>
+        ) : (
+          <div className="w-full md:max-w-[220px] md:self-end">{applyBlock}</div>
+        )
+      ) : null}
     </aside>
   );
 
@@ -248,14 +274,27 @@ function CastingRow({
     </aside>
   );
 
-  const innerRowClass = catalogLayout
-    ? "flex flex-col gap-0 p-4 pt-12 transition-colors sm:p-5 sm:pt-12 md:flex-row md:items-stretch md:gap-6 md:px-6 md:py-5 md:pt-5"
-    : "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4";
+  const innerRowClass = historyMode
+    ? "flex flex-col gap-0 p-4 transition-colors sm:p-5 md:px-6 md:py-5"
+    : catalogLayout
+      ? "flex flex-col gap-0 p-4 transition-colors sm:p-5 md:flex-row md:items-stretch md:gap-6 md:px-6 md:py-5"
+      : "flex flex-row items-start gap-2 p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 md:gap-6 md:px-5 md:py-4";
 
-  const mainBlock = catalogLayout ? mainCatalog : mainSimple;
-  const showHeart = Boolean(catalogLayout && showFavorite && userRole);
+  const mainBlock = catalogLayout || historyMode ? mainCatalog : mainSimple;
 
-  const body = (
+  const body = historyMode ? (
+    <div className={innerRowClass}>
+      {canBrowse ? (
+        <Link href={`/castings/${c.id}`} className="group/cast min-w-0 w-full outline-none">
+          {mainBlock}
+        </Link>
+      ) : (
+        <button type="button" onClick={onNeedAuth} className="min-w-0 w-full text-left">
+          {mainBlock}
+        </button>
+      )}
+    </div>
+  ) : (
     <div className={innerRowClass}>
       {canBrowse ? (
         <Link href={`/castings/${c.id}`} className="group/cast min-w-0 w-full outline-none md:flex-1">
@@ -270,25 +309,21 @@ function CastingRow({
     </div>
   );
 
-  const cardShellClass = catalogLayout
-    ? cn(
-        "relative overflow-hidden rounded-2xl border border-border/80 bg-card",
-        "shadow-[0_2px_14px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.35)]",
-        "transition-shadow duration-200 hover:shadow-[0_6px_24px_-4px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.45)]",
-      )
-    : "relative overflow-hidden bg-card";
+  const cardShellClass =
+    catalogLayout || historyMode
+      ? cn(
+          "relative overflow-hidden rounded-2xl border border-border/80 bg-card",
+          "shadow-[0_2px_14px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.35)]",
+          "transition-shadow duration-200 hover:shadow-[0_6px_24px_-4px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.45)]",
+        )
+      : "relative overflow-hidden bg-card";
 
   if (loading) {
     return (
       <div className={cardShellClass}>
-        {showHeart ? (
-          <div className="pointer-events-none absolute right-2 top-2 z-20 opacity-50 sm:right-4 sm:top-4">
-            <div className="h-8 w-8 rounded-full bg-muted" />
-          </div>
-        ) : null}
         <div className={cn(innerRowClass, "cursor-wait opacity-80")}>
           <div className="min-w-0 w-full md:flex-1">{mainBlock}</div>
-          {catalogLayout ? sideCatalog : sideCompact}
+          {!historyMode && (catalogLayout ? sideCatalog : sideCompact)}
         </div>
       </div>
     );
@@ -296,17 +331,14 @@ function CastingRow({
 
   return (
     <div className={cardShellClass}>
-      {showHeart ? (
-        <div className="absolute right-3 top-3 z-20 sm:right-4 sm:top-4">
-          <FavoriteHeartButton
-            kind="casting"
-            targetId={c.id}
-            initial={Boolean(c.isFavorite)}
-            label="Избранный кастинг"
-          />
+      {body}
+      {historyMode && statusFooter?.trim() ? (
+        <div className="flex justify-end border-t border-border/60 bg-muted/20 px-4 py-2.5 sm:px-5">
+          <Badge variant="outline" className="font-normal">
+            {statusFooter.trim()}
+          </Badge>
         </div>
       ) : null}
-      {body}
     </div>
   );
 }
@@ -408,50 +440,27 @@ function ActorCard({
             Навыки
           </span>
           {a.professionalLabels.length > 0 ? (
-            catalogLayout ? (
-              <>
-                <div className="flex flex-wrap content-start gap-1 md:hidden">
-                  <Badge
-                    variant="secondary"
-                    className="max-w-full truncate px-2 py-0.5 text-left text-[10px] font-normal leading-tight"
-                    title={a.professionalLabels.join(", ")}
-                  >
-                    {a.professionalLabels[0]}
-                  </Badge>
-                </div>
-                <div className="hidden flex-wrap content-start gap-1 sm:gap-1.5 md:flex">
-                  {a.professionalLabels.map((label, i) => (
-                    <Badge
-                      key={`${a.id}-p-${i}-${label}`}
-                      variant="secondary"
-                      className={cn(
-                        "max-w-full whitespace-normal break-words px-2 py-0.5 text-left font-normal leading-tight sm:px-2.5 sm:py-1 sm:leading-snug",
-                        "text-[10px] sm:text-xs",
-                      )}
-                      title={label}
-                    >
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-wrap content-start gap-1 sm:gap-1.5">
-                {a.professionalLabels.map((label, i) => (
-                  <Badge
-                    key={`${a.id}-p-${i}-${label}`}
-                    variant="secondary"
-                    className={cn(
-                      "max-w-full whitespace-normal break-words px-2 py-0.5 text-left font-normal leading-tight sm:px-2.5 sm:py-1 sm:leading-snug",
-                      "text-xs",
-                    )}
-                    title={label}
-                  >
-                    {label}
-                  </Badge>
-                ))}
-              </div>
-            )
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "min-w-0 max-w-full flex-1 truncate px-2 py-0.5 text-left text-[10px] font-normal leading-tight sm:text-xs",
+                  "basis-0 sm:max-w-[min(100%,14rem)]",
+                )}
+                title={a.professionalLabels.join(", ")}
+              >
+                {a.professionalLabels[0]}
+              </Badge>
+              {a.professionalLabels.length > 1 ? (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-primary/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary sm:text-xs"
+                  title={a.professionalLabels.join(", ")}
+                >
+                  +{a.professionalLabels.length - 1}
+                </Badge>
+              ) : null}
+            </div>
           ) : (
             <p className="text-sm italic text-muted-foreground">Не указано</p>
           )}
@@ -485,6 +494,45 @@ function canBrowseActorsRole(role: string | undefined) {
   return role === "ACTOR" || role === "PRODUCER" || role === "ADMIN";
 }
 
+function FavoritesBlockPagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-4">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 min-w-[5.5rem]"
+        disabled={page <= 1}
+        onClick={() => onPageChange(Math.max(1, page - 1))}
+      >
+        Назад
+      </Button>
+      <span className="px-2 text-sm tabular-nums text-muted-foreground">
+        {page} / {totalPages}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 min-w-[5.5rem]"
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+      >
+        Вперёд
+      </Button>
+    </div>
+  );
+}
+
 export function HomePublicBrowse({
   castings,
   actors,
@@ -496,6 +544,7 @@ export function HomePublicBrowse({
   castingsCatalogToolbar,
   castingsCatalogLayout = false,
   betweenCastingsAndActors,
+  favoritesPagination = false,
 }: {
   castings: SerializedHomeCasting[];
   actors: SerializedHomeActor[];
@@ -514,10 +563,15 @@ export function HomePublicBrowse({
   castingsCatalogLayout?: boolean;
   /** Вставка между блоками «Кастинги» и «Актёры» (главная для гостей) */
   betweenCastingsAndActors?: ReactNode;
+  /** /explore?tab=favorites — отдельная пагинация в блоках кастинги / актёры */
+  favoritesPagination?: boolean;
 }) {
   const { data: session, status } = useSession();
   const [castModalOpen, setCastModalOpen] = useState(false);
   const [actorModalOpen, setActorModalOpen] = useState(false);
+  const { castingsPageSize, actorsPageSize } = useFavoritesPageSizes();
+  const [favCastingsPage, setFavCastingsPage] = useState(1);
+  const [favActorsPage, setFavActorsPage] = useState(1);
   const role = session?.user?.role;
   const authed = status === "authenticated";
   const loading = status === "loading";
@@ -526,6 +580,39 @@ export function HomePublicBrowse({
 
   const showCastings = activeTab === "both" || activeTab === "castings";
   const showActors = activeTab === "both" || activeTab === "actors";
+
+  const favCastingsTotalPages = Math.max(1, Math.ceil(castings.length / castingsPageSize));
+  const favActorsTotalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize));
+  const safeFavCastingsPage = Math.min(favCastingsPage, favCastingsTotalPages);
+  const safeFavActorsPage = Math.min(favActorsPage, favActorsTotalPages);
+
+  const castingsToShow = useMemo(() => {
+    if (!favoritesPagination) return castings;
+    const start = (safeFavCastingsPage - 1) * castingsPageSize;
+    return castings.slice(start, start + castingsPageSize);
+  }, [castings, favoritesPagination, safeFavCastingsPage, castingsPageSize]);
+
+  const actorsToShow = useMemo(() => {
+    if (!favoritesPagination) return actors;
+    const start = (safeFavActorsPage - 1) * actorsPageSize;
+    return actors.slice(start, start + actorsPageSize);
+  }, [actors, favoritesPagination, safeFavActorsPage, actorsPageSize]);
+
+  useEffect(() => {
+    if (!favoritesPagination) return;
+    setFavCastingsPage(1);
+    setFavActorsPage(1);
+  }, [favoritesPagination, castingsPageSize, actorsPageSize]);
+
+  useEffect(() => {
+    if (!favoritesPagination) return;
+    if (favCastingsPage > favCastingsTotalPages) setFavCastingsPage(favCastingsTotalPages);
+  }, [favoritesPagination, favCastingsPage, favCastingsTotalPages]);
+
+  useEffect(() => {
+    if (!favoritesPagination) return;
+    if (favActorsPage > favActorsTotalPages) setFavActorsPage(favActorsTotalPages);
+  }, [favoritesPagination, favActorsPage, favActorsTotalPages]);
 
   return (
     <>
@@ -576,10 +663,10 @@ export function HomePublicBrowse({
                   : "bg-card",
               )}
             >
-              Пока нет активных кастингов
+              {favoritesPagination ? "Нет избранных кастингов" : "Пока нет активных кастингов"}
             </div>
           ) : (
-            castings.map((c) => (
+            castingsToShow.map((c) => (
               <CastingRow
                 key={c.id}
                 c={c}
@@ -593,6 +680,13 @@ export function HomePublicBrowse({
             ))
           )}
         </div>
+        {favoritesPagination && castings.length > 0 ? (
+          <FavoritesBlockPagination
+            page={safeFavCastingsPage}
+            totalPages={favCastingsTotalPages}
+            onPageChange={setFavCastingsPage}
+          />
+        ) : null}
       </section>
       )}
 
@@ -632,30 +726,41 @@ export function HomePublicBrowse({
           ) : null}
         </div>
         {actors.length === 0 ? (
-          <p className="text-sm text-muted-foreground">В каталоге пока нет профилей</p>
+          <p className="text-sm text-muted-foreground">
+            {favoritesPagination ? "Нет избранных актёров" : "В каталоге пока нет профилей"}
+          </p>
         ) : (
-          <div
-            className={cn(
-              "grid justify-items-stretch gap-2 sm:gap-5",
-              actorsCatalogGrid
-                ? "grid-cols-2 sm:grid-cols-3"
-                : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-              actorsCatalogGrid && "auto-rows-fr items-stretch",
-            )}
-          >
-            {actors.map((a) => (
-              <ActorCard
-                key={a.id}
-                a={a}
-                catalogLayout={actorsCatalogGrid}
-                canBrowse={canBrowseActors}
-                loading={loading}
-                showFavorite={actorsCatalogGrid && Boolean(role)}
-                userRole={role}
-                onNeedAuth={() => setActorModalOpen(true)}
+          <>
+            <div
+              className={cn(
+                "grid justify-items-stretch gap-2 sm:gap-5",
+                actorsCatalogGrid
+                  ? "grid-cols-2 sm:grid-cols-3"
+                  : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+                actorsCatalogGrid && "auto-rows-fr items-stretch",
+              )}
+            >
+              {actorsToShow.map((a) => (
+                <ActorCard
+                  key={a.id}
+                  a={a}
+                  catalogLayout={actorsCatalogGrid}
+                  canBrowse={canBrowseActors}
+                  loading={loading}
+                  showFavorite={actorsCatalogGrid && Boolean(role)}
+                  userRole={role}
+                  onNeedAuth={() => setActorModalOpen(true)}
+                />
+              ))}
+            </div>
+            {favoritesPagination ? (
+              <FavoritesBlockPagination
+                page={safeFavActorsPage}
+                totalPages={favActorsTotalPages}
+                onPageChange={setFavActorsPage}
               />
-            ))}
-          </div>
+            ) : null}
+          </>
         )}
       </section>
       )}

@@ -28,17 +28,24 @@ export async function createReview(params: {
   const actorUserId = app.actorProfile.userId;
   const producerUserId = app.producerProfile.userId;
 
+  /** После приглашения статус часто становится ACCEPTED — оценка звёздами без текста всё равно доступна. */
   const actorCanReview =
-    app.status === ApplicationStatus.CAST_PASSED || app.status === ApplicationStatus.INVITED;
+    app.status === ApplicationStatus.CAST_PASSED ||
+    app.status === ApplicationStatus.INVITED ||
+    app.status === ApplicationStatus.ACCEPTED;
   const producerCanReviewBase =
-    app.status === ApplicationStatus.CAST_PASSED || app.status === ApplicationStatus.INVITED;
+    app.status === ApplicationStatus.CAST_PASSED ||
+    app.status === ApplicationStatus.INVITED ||
+    app.status === ApplicationStatus.ACCEPTED;
 
   let direction: ReviewDirection;
   let subjectId: string;
 
   if (params.authorUserId === actorUserId) {
     if (!actorCanReview) {
-      throw new Error("Отзыв о кастинг-директоре доступен после приглашения в проект или «Кастинг пройден»");
+      throw new Error(
+        "Оценка кастинг-директору доступна после приглашения, после принятия в проект или когда отмечен «Кастинг пройден»",
+      );
     }
     direction = ReviewDirection.ACTOR_TO_PRODUCER;
     subjectId = producerUserId;
@@ -59,7 +66,7 @@ export async function createReview(params: {
       subjectId,
       direction,
       stars: params.stars,
-      text: params.text,
+      text: (params.text ?? "").trim(),
       moderationStatus: ReviewModerationStatus.APPROVED,
     },
   });

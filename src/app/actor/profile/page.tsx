@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { ApplicationStatus } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ActorProfileView } from "@/components/actor-profile-view";
+import { CastingHistoryList } from "@/components/casting-history-list";
+import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
+import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 
 export default async function ActorProfileCabinetPage() {
   const session = await auth();
@@ -26,14 +27,29 @@ export default async function ActorProfileCabinetPage() {
     where: { actorProfileId: profile.id, status: { in: historyStatuses } },
     orderBy: { updatedAt: "desc" },
     take: 20,
-    include: { casting: { select: { id: true, title: true, scheduledAt: true } } },
+    include: {
+      casting: {
+        include: {
+          city: true,
+          producerProfile: { select: { id: true, companyName: true, fullName: true } },
+        },
+      },
+    },
   });
+
+  const mediaWithLikes = await attachPortfolioLikesToPhotos(profile.media, session?.user?.id);
+
+  const historyRows = history.map((h) => ({
+    serialized: serializeCastingForBrowse(h.casting),
+    status: h.status,
+  }));
 
   return (
     <div className="space-y-10">
       <ActorProfileView
         variant="cabinet"
         editHref="/actor/profile/edit"
+        canLikePortfolioPhotos={Boolean(session?.user?.id)}
         profile={{
           fullName: profile.fullName,
           birthDate: profile.birthDate,
@@ -54,7 +70,7 @@ export default async function ActorProfileCabinetPage() {
           moderationStatus: profile.moderationStatus,
           moderationComment: profile.moderationComment,
         }}
-        media={profile.media.map((m) => ({
+        media={mediaWithLikes.map((m) => ({
           id: m.id,
           kind: m.kind,
           publicUrl: m.publicUrl,
@@ -62,6 +78,8 @@ export default async function ActorProfileCabinetPage() {
           isAvatar: m.isAvatar,
           sortOrder: m.sortOrder,
           moderationStatus: m.moderationStatus,
+          likeCount: m.likeCount,
+          likedByMe: m.likedByMe,
         }))}
       />
 
@@ -69,20 +87,11 @@ export default async function ActorProfileCabinetPage() {
         <CardHeader>
           <CardTitle className="text-base">История одобренных кастингов</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {history.length === 0 ? (
+        <CardContent className="text-sm">
+          {historyRows.length === 0 ? (
             <p className="text-muted-foreground">Пока нет записей со статусом приглашение / принят / кастинг пройден.</p>
           ) : (
-            <ul className="space-y-2">
-              {history.map((h) => (
-                <li key={h.id} className="flex flex-wrap justify-between gap-2 border-b border-border pb-2">
-                  <Link href={`/castings/${h.casting.id}`} className="font-medium text-primary hover:underline">
-                    {h.casting.title}
-                  </Link>
-                  <Badge variant="outline">{h.status}</Badge>
-                </li>
-              ))}
-            </ul>
+            <CastingHistoryList rows={historyRows} />
           )}
         </CardContent>
       </Card>

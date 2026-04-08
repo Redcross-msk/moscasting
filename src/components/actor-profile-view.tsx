@@ -23,6 +23,7 @@ import {
 } from "@/lib/actor-form-constants";
 import { availabilityLabel, bodyTypeLabel, genderLabel } from "@/lib/profile-labels";
 import { ProducerInviteToProject } from "@/components/producer-invite-to-project";
+import { ProfilePortfolioSection } from "@/components/profile-portfolio-section";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 export type ActorProfileViewMedia = {
@@ -33,6 +34,8 @@ export type ActorProfileViewMedia = {
   isAvatar: boolean;
   sortOrder?: number;
   moderationStatus?: ModerationStatus;
+  likeCount?: number;
+  likedByMe?: boolean;
 };
 
 type Props = {
@@ -63,6 +66,8 @@ type Props = {
   showCatalogBack?: boolean;
   /** Продюсер: приглашение в чат по выбранному кастингу */
   producerInvite?: { actorProfileId: string; castings: { id: string; title: string }[] };
+  /** Авторизованный пользователь может лайкать фото в лайтбоксе */
+  canLikePortfolioPhotos?: boolean;
 };
 
 export function ActorProfileView({
@@ -72,6 +77,7 @@ export function ActorProfileView({
   editHref,
   showCatalogBack,
   producerInvite,
+  canLikePortfolioPhotos = false,
 }: Props) {
   const mediaSrc = (m: ActorProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
 
@@ -262,63 +268,16 @@ export function ActorProfileView({
       </div>
 
       {hasPortfolioBlock ? (
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Портфолио</h2>
-          <div
-            className={
-              gridPhotos.length > 0
-                ? "flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8"
-                : "flex flex-col gap-6"
-            }
-          >
-            {gridPhotos.length > 0 ? (
-              <div className="w-full lg:min-w-0 lg:flex-1">
-                <div className="grid grid-cols-3 gap-1 overflow-hidden rounded-xl bg-muted">
-                  {gridPhotos.map((m) => (
-                    <div key={m.id} className="aspect-square overflow-hidden bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={mediaSrc(m)!}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-300 hover:opacity-95"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {videos.length > 0 ? (
-              <div
-                className={
-                  gridPhotos.length > 0
-                    ? "w-full shrink-0 lg:w-[min(100%,340px)] xl:w-[min(100%,380px)]"
-                    : "mx-auto w-full max-w-xl"
-                }
-              >
-                <p
-                  className={
-                    gridPhotos.length > 0
-                      ? "mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:mb-3"
-                      : "mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                  }
-                >
-                  Видеовизитка
-                </p>
-                <div className="space-y-3">
-                  {videos.map((m) => (
-                    <div
-                      key={m.id}
-                      className="overflow-hidden rounded-xl border border-border bg-black shadow-md"
-                    >
-                      <video src={mediaSrc(m)!} controls className="aspect-video w-full" preload="metadata" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
+        <ProfilePortfolioSection
+          photos={gridPhotos.map((m) => ({
+            id: m.id,
+            src: mediaSrc(m)!,
+            likeCount: m.likeCount ?? 0,
+            likedByMe: m.likedByMe ?? false,
+          }))}
+          videos={videos.map((m) => ({ id: m.id, src: mediaSrc(m)! }))}
+          canLike={canLikePortfolioPhotos}
+        />
       ) : null}
     </div>
   );

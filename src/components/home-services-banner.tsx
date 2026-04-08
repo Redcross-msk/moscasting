@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Баннер: две равные половины с чёткой границей; на мобиле — курсы → кнопка → портфолио → кнопка. */
+/** Баннер: две половины; на мобиле в каждой — заголовок, абзац и кнопка в одном блоке. */
 export function HomeServicesBanner() {
   return (
     <section
@@ -12,18 +12,15 @@ export function HomeServicesBanner() {
       )}
       aria-label="Обучение и портфолио"
     >
-      {/* Мобильная версия */}
+      {/* Мобильная версия: один непрерывный блок на половину — заголовок, абзац, кнопка */}
       <div className="flex flex-col md:hidden">
-        <div className="border-b border-border bg-gradient-to-br from-primary/[0.12] to-background px-4 py-6 sm:px-5">
+        <div className="border-b border-border bg-muted/40 px-4 py-6 sm:px-5">
           <h3 className="text-lg font-bold text-foreground">Курсы актёрского мастерства</h3>
-          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <li>8 и 16-часовые программы для актёров второго плана и массовки.</li>
-            <li>Сертификат государственного образца.</li>
-            <li>Преподаватели из ведущих вузов страны.</li>
-          </ul>
-        </div>
-        <div className="border-b border-border bg-gradient-to-br from-primary/[0.12] to-background px-4 pb-6 pt-2 sm:px-5">
-          <Button className="w-full sm:w-auto" asChild>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            8- и 16-часовые программы для актёров второго плана и массовки: сертификат государственного образца и
+            преподаватели из ведущих вузов страны.
+          </p>
+          <Button className="mt-4 w-full sm:w-auto" asChild>
             <Link href="/obuchenie">Записаться на курсы</Link>
           </Button>
         </div>
@@ -33,9 +30,7 @@ export function HomeServicesBanner() {
             Профессиональное фото- и видеопортфолио по государственным стандартам — для кастингов, агентств и
             самопрезентации.
           </p>
-        </div>
-        <div className="bg-muted/40 px-4 pb-6 pt-0 sm:px-5">
-          <Button className="w-full sm:w-auto" asChild>
+          <Button className="mt-4 w-full sm:w-auto" asChild>
             <Link href="/portfolio">Записаться на портфолио</Link>
           </Button>
         </div>
@@ -47,11 +42,10 @@ export function HomeServicesBanner() {
           <h3 className="text-xl font-bold tracking-tight text-foreground lg:text-2xl">
             Курсы актёрского мастерства
           </h3>
-          <ul className="mt-4 space-y-2 text-sm leading-relaxed text-muted-foreground lg:text-[15px]">
-            <li>У нас вы пройдёте 8 и 16-часовой курс актёрского мастерства — актёры второго плана и массовки.</li>
-            <li>Сертификат государственного образца.</li>
-            <li>Преподаватели из лучших вузов страны.</li>
-          </ul>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground lg:text-[15px]">
+            8- и 16-часовые программы для актёров второго плана и массовки: сертификат государственного образца и
+            преподаватели из ведущих вузов страны.
+          </p>
         </div>
         <div className="mt-8 shrink-0">
           <Button asChild>

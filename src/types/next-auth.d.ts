@@ -6,11 +6,14 @@ declare module "next-auth" {
     user: {
       id: string;
       role: UserRole;
+      /** ФИО из профиля актёра / продюсера для меню (без email). */
+      displayName?: string | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: UserRole;
+    displayName?: string | null;
   }
 }
 
@@ -19,5 +22,6 @@ declare module "next-auth/jwt" {
     id: string;
     role: UserRole;
     email?: string | null;
+    displayName?: string | null;
   }
 }

@@ -40,7 +40,7 @@ export default async function ActorProfileEditPage() {
     }));
   const portfolioVideos = profile.media
     .filter((m) => m.kind === MediaKind.VIDEO)
-    .map((m) => ({ id: m.id, publicUrl: m.publicUrl }));
+    .map((m) => ({ id: m.id, publicUrl: m.publicUrl, storageKey: m.storageKey }));
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-12">

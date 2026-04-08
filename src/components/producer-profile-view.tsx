@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
 import type { ModerationStatus, ReviewModerationStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
 import { StarRatingDisplay } from "@/components/star-rating-display";
+import { ProfilePortfolioSection } from "@/components/profile-portfolio-section";
 import { cn } from "@/lib/utils";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
@@ -13,6 +12,8 @@ export type ProducerProfileViewMedia = {
   storageKey?: string;
   isAvatar: boolean;
   moderationStatus?: ModerationStatus;
+  likeCount?: number;
+  likedByMe?: boolean;
 };
 
 type CastingRow = {
@@ -64,29 +65,8 @@ type Props = {
   castingLinkPrefix?: string;
   filmographyEntries?: ProducerFilmographyCard[];
   reviews?: ProducerReviewRow[];
+  canLikePortfolioPhotos?: boolean;
 };
-
-function InfoBlock({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-border/80 bg-gradient-to-br from-muted/40 to-muted/10 px-5 py-4 shadow-sm",
-        className,
-      )}
-    >
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</h2>
-      <div className="text-base font-medium leading-snug text-foreground">{children}</div>
-    </div>
-  );
-}
 
 export function ProducerProfileView({
   profile,
@@ -99,6 +79,7 @@ export function ProducerProfileView({
   castingLinkPrefix = "/castings",
   filmographyEntries = [],
   reviews = [],
+  canLikePortfolioPhotos = false,
 }: Props) {
   const mediaSrc = (m: ProducerProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
   const avatar =
@@ -108,128 +89,144 @@ export function ProducerProfileView({
   );
 
   return (
-    <div className="space-y-10 pb-10">
-      <header className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/50 via-primary/20 to-transparent" aria-hidden />
-        <div className="px-5 py-6 sm:px-8 sm:py-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
-            <div className="mx-auto h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted shadow-md ring-4 ring-background sm:mx-0 sm:h-36 sm:w-36">
-              {avatar && mediaSrc(avatar) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={mediaSrc(avatar)!} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center px-3 text-center text-xs text-muted-foreground">
-                  Нет фото
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                <div className="min-w-0 space-y-1">
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{profile.fullName}</h1>
-                </div>
-                <div className="flex shrink-0 flex-col items-center gap-3 sm:items-end sm:pt-0.5">
-                  <StarRatingDisplay
-                    average={Number(profile.ratingAverage)}
-                    count={profile.ratingCount}
-                    size="lg"
-                  />
-                </div>
+    <div className="space-y-10 pb-8">
+      <header className="space-y-4">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
+          <div className="mx-auto h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted shadow-sm sm:mx-0 sm:h-36 sm:w-36">
+            {avatar && mediaSrc(avatar) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={mediaSrc(avatar)!} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                Нет фото
               </div>
+            )}
+          </div>
 
-              {variant === "cabinet" && editHref ? (
-                <Button variant="default" size="default" className="w-full sm:w-auto" asChild>
-                  <Link href={editHref}>Редактировать профиль</Link>
-                </Button>
-              ) : null}
+          <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0 space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{profile.fullName}</h1>
+              </div>
+              <div className="flex shrink-0 flex-col items-center gap-3 sm:items-end sm:pt-0.5">
+                <StarRatingDisplay
+                  average={Number(profile.ratingAverage)}
+                  count={profile.ratingCount}
+                  size="lg"
+                />
+              </div>
             </div>
+
+            {variant === "cabinet" && editHref ? (
+              <Button variant="default" size="default" className="w-full sm:w-auto" asChild>
+                <Link href={editHref}>Редактировать профиль</Link>
+              </Button>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <InfoBlock label="Компания">{profile.companyName}</InfoBlock>
-          <InfoBlock label="Должность">{profile.positionTitle}</InfoBlock>
-        </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <section
+          className={cn(
+            "px-5 py-5 sm:px-6",
+            filmographyEntries.length === 0 &&
+              Boolean(profile.filmography?.trim()) &&
+              "border-b border-border",
+          )}
+        >
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Компания и должность
+          </h2>
+          <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
+            <dl className="grid gap-3 text-sm sm:grid-cols-[minmax(7rem,auto)_1fr] sm:gap-x-6 sm:gap-y-2.5">
+              <dt className="text-muted-foreground">Компания</dt>
+              <dd className="font-medium text-foreground">{profile.companyName}</dd>
+              <dt className="text-muted-foreground">Должность</dt>
+              <dd className="font-medium text-foreground">{profile.positionTitle}</dd>
+            </dl>
+          </div>
+        </section>
 
-        {gallery.length > 0 ? (
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Фото портфолио
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {gallery.map((m) => (
-                <div
-                  key={m.id}
-                  className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border/80 bg-muted shadow-sm"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mediaSrc(m)!}
-                    alt=""
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                  />
-                </div>
-              ))}
-            </div>
+        {filmographyEntries.length === 0 && profile.filmography ? (
+          <section className="px-5 py-5 sm:px-6">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Фильмография</h2>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{profile.filmography}</p>
           </section>
+        ) : null}
+      </div>
+
+      <div className="space-y-6">
+        {gallery.length > 0 ? (
+          <ProfilePortfolioSection
+            photos={gallery.map((m) => ({
+              id: m.id,
+              src: mediaSrc(m)!,
+              likeCount: m.likeCount ?? 0,
+              likedByMe: m.likedByMe ?? false,
+            }))}
+            videos={[]}
+            canLike={canLikePortfolioPhotos}
+          />
         ) : null}
 
         {filmographyEntries.length > 0 ? (
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Фильмография
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filmographyEntries.map((e) => (
-                <div
-                  key={e.id}
-                  className="overflow-hidden rounded-xl border border-border/80 bg-muted/15 shadow-sm transition hover:border-primary/25 hover:shadow-md"
-                >
-                  <div className="aspect-[2/3] max-h-64 bg-muted">
-                    {e.posterPublicUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.posterPublicUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center p-4 text-center text-xs text-muted-foreground">
-                        Нет постера
-                      </div>
-                    )}
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Фильмография</h2>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+              {filmographyEntries.map((e) => {
+                const posterSrc = resolveUploadedMediaSrc(e.posterPublicUrl, null);
+                const releaseLabel = e.releaseDate
+                  ? new Intl.DateTimeFormat("ru-RU", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(e.releaseDate))
+                  : null;
+                const inner = (
+                  <>
+                    <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted">
+                      {posterSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={posterSrc} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center p-2 text-center text-[10px] text-muted-foreground">
+                          Нет постера
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 space-y-0.5 pt-2">
+                      <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{e.title}</p>
+                      {releaseLabel ? (
+                        <p className="text-[11px] text-muted-foreground">{releaseLabel}</p>
+                      ) : null}
+                    </div>
+                  </>
+                );
+                const cardClass = cn(
+                  "block overflow-hidden rounded-xl border border-border/80 bg-card p-2 shadow-sm transition-colors",
+                  e.kinopoiskUrl?.trim()
+                    ? "cursor-pointer hover:border-primary/35 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    : "cursor-default",
+                );
+                return e.kinopoiskUrl?.trim() ? (
+                  <a
+                    key={e.id}
+                    href={e.kinopoiskUrl.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cardClass}
+                    aria-label={`${e.title}, открыть страницу на Кинопоиске`}
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <div key={e.id} className={cardClass}>
+                    {inner}
                   </div>
-                  <CardContent className="space-y-2 p-4 text-sm">
-                    <p className="font-semibold leading-snug">{e.title}</p>
-                    {e.releaseDate ? (
-                      <p className="text-xs text-muted-foreground">
-                        {new Intl.DateTimeFormat("ru-RU", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        }).format(new Date(e.releaseDate))}
-                      </p>
-                    ) : null}
-                    {e.kinopoiskUrl ? (
-                      <a
-                        href={e.kinopoiskUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        Кинопоиск <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : null}
-                  </CardContent>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </section>
-        ) : profile.filmography ? (
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Фильмография
-            </h2>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{profile.filmography}</p>
           </section>
         ) : null}
 
@@ -250,8 +247,9 @@ export function ProducerProfileView({
         />
 
         {reviews.length > 0 ? (
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:rounded-2xl sm:p-5">
-            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:mb-4">
+          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="px-5 py-4 sm:px-6 sm:py-5">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Оценки актёров
             </h2>
             <ul className="space-y-2 sm:space-y-3">
@@ -281,6 +279,7 @@ export function ProducerProfileView({
                 );
               })}
             </ul>
+            </div>
           </section>
         ) : null}
       </div>
@@ -299,14 +298,15 @@ function CastingSection({
 }) {
   if (castings.length === 0) return null;
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
-      <div className="space-y-2">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="px-5 py-4 sm:px-6 sm:py-5">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+        <div className="space-y-2">
         {castings.map((c) => (
           <Link
             key={c.id}
             href={`${castingLinkPrefix}/${c.id}`}
-            className="block rounded-xl border border-border/70 bg-muted/10 p-3 text-sm transition hover:border-primary/30 hover:bg-muted/20"
+            className="block rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5 text-sm transition hover:border-primary/30 hover:bg-muted/20"
           >
             <span className="font-medium text-primary">{c.title}</span>
             <span className="text-muted-foreground"> · {c.city.name}</span>
@@ -315,6 +315,7 @@ function CastingSection({
             ) : null}
           </Link>
         ))}
+        </div>
       </div>
     </section>
   );

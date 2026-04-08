@@ -15,6 +15,7 @@ import {
   adminSetPortfolioLeadFromFormAction,
 } from "@/features/admin/service-leads-actions";
 import { PortfolioDayDeleteButton } from "@/components/admin/service-slot-delete-buttons";
+import { AdminPaginatedCardList } from "@/components/admin/admin-paginated-card-list";
 import { cn } from "@/lib/utils";
 
 const statusRu: Record<ServiceLeadStatus, string> = {
@@ -85,7 +86,7 @@ export default async function AdminPortfolioPage({
             {daysWithLive.length === 0 ? (
               <p className="text-sm text-muted-foreground">Пока нет дат.</p>
             ) : (
-              <div className="space-y-4">
+              <AdminPaginatedCardList>
                 {daysWithLive.map((d) => (
                   <Card key={d.id}>
                     <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
@@ -130,7 +131,7 @@ export default async function AdminPortfolioPage({
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+              </AdminPaginatedCardList>
             )}
           </div>
         </div>
@@ -139,38 +140,40 @@ export default async function AdminPortfolioPage({
           {leads.length === 0 ? (
             <p className="text-sm text-muted-foreground">Заявок пока нет.</p>
           ) : (
-            leads.map((l) => (
-              <Card key={l.id}>
-                <CardContent className="space-y-3 py-4 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="font-medium">{l.fullName}</span>
-                    <span className="text-muted-foreground">{l.email}</span>
-                  </div>
-                  <p className="text-muted-foreground">{l.phone}</p>
-                  <p>
-                    Дата рождения: {l.birthDate.toLocaleDateString("ru-RU")} · Желаемая съёмка:{" "}
-                    {l.slot.shootDate.toLocaleDateString("ru-RU")}
-                  </p>
-                  <form action={adminSetPortfolioLeadFromFormAction} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="leadId" value={l.id} />
-                    <select
-                      name="status"
-                      defaultValue={l.status}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      {Object.values(ServiceLeadStatus).map((st) => (
-                        <option key={st} value={st}>
-                          {statusRu[st]}
-                        </option>
-                      ))}
-                    </select>
-                    <Button type="submit" size="sm">
-                      Обновить статус
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            ))
+            <AdminPaginatedCardList>
+              {leads.map((l) => (
+                <Card key={l.id}>
+                  <CardContent className="space-y-3 py-4 text-sm">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <span className="font-medium">{l.fullName}</span>
+                      <span className="text-muted-foreground">{l.email}</span>
+                    </div>
+                    <p className="text-muted-foreground">{l.phone}</p>
+                    <p>
+                      Дата рождения: {l.birthDate.toLocaleDateString("ru-RU")} · Желаемая съёмка:{" "}
+                      {l.slot.shootDate.toLocaleDateString("ru-RU")}
+                    </p>
+                    <form action={adminSetPortfolioLeadFromFormAction} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="leadId" value={l.id} />
+                      <select
+                        name="status"
+                        defaultValue={l.status}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        {Object.values(ServiceLeadStatus).map((st) => (
+                          <option key={st} value={st}>
+                            {statusRu[st]}
+                          </option>
+                        ))}
+                      </select>
+                      <Button type="submit" size="sm">
+                        Обновить статус
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              ))}
+            </AdminPaginatedCardList>
           )}
         </div>
       )}

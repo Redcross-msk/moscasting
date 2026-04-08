@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SerializedHomeCasting } from "@/components/home-public-browse";
 import { castingCategoryLabelRu, formatShootDateTimeRu, type SerializedRoleReq } from "@/lib/casting-display";
+import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 import { castingLocationParts } from "@/lib/casting-location-lines";
 import { WithdrawButton } from "@/app/actor/applications/withdraw-button";
 
@@ -42,17 +43,13 @@ export function ActorApplicationCatalogCard({
   chatId: string | null;
   coverNote: string | null;
 }) {
-  const paymentLine =
-    c.paymentRub != null ? (
-      <span className="text-base font-bold tabular-nums text-foreground">
-        {c.paymentRub.toLocaleString("ru-RU")} ₽
-      </span>
-    ) : c.paymentInfo ? (
-      <span className="text-sm font-semibold text-foreground">{c.paymentInfo}</span>
-    ) : null;
+  const payStr = formatCastingPaymentLine(c.paymentRub, c.paymentInfo, c.paymentPeriod);
+  const paymentLine = payStr ? (
+    <span className="text-base font-bold text-foreground">{payStr}</span>
+  ) : null;
 
   const producerName = c.producerProfile.fullName?.trim() || c.producerProfile.companyName || "Продюсер";
-  const scheduleLine = formatShootDateTimeRu(c.scheduledAt, c.shootStartTime);
+  const scheduleLine = formatShootDateTimeRu(c.scheduledAt, c.shootStartTime, c.shootDates);
   const loc = castingLocationParts({
     metroStation: c.metroStation,
     addressLine: c.addressLine,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
+import { deletePublicUploadFile } from "@/server/uploads/save-public-upload";
 
 export async function addActorPortfolioMediaAction(_formData: FormData) {
   throw new Error(
@@ -85,17 +86,23 @@ export async function setProducerAvatarMediaFormAction(formData: FormData) {
   revalidatePath("/explore");
 }
 
-/** Меняет порядок только у фото портфолио (не аватар, не видео). */
-export async function moveActorMediaAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ACTOR") throw new Error("Forbidden");
+export type ActorMediaMutationResult = { ok: true } | { ok: false; error: string };
 
-  const mediaId = String(formData.get("mediaId") ?? "");
+/** Меняет порядок только у фото портфолио (не аватар, не видео). */
+export async function moveActorMediaAction(formData: FormData): Promise<ActorMediaMutationResult> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ACTOR") {
+    return { ok: false, error: "Нет доступа" };
+  }
+
+  const mediaId = String(formData.get("mediaId") ?? "").trim();
   const direction = String(formData.get("direction") ?? "");
-  if (!mediaId || (direction !== "up" && direction !== "down")) throw new Error("Некорректные данные");
+  if (!mediaId || (direction !== "up" && direction !== "down")) {
+    return { ok: false, error: "Некорректные данные" };
+  }
 
   const profile = await prisma.actorProfile.findUnique({ where: { userId: session.user.id } });
-  if (!profile) throw new Error("Нет профиля");
+  if (!profile) return { ok: false, error: "Нет профиля" };
 
   const photoList = await prisma.mediaFile.findMany({
     where: {
@@ -106,33 +113,42 @@ export async function moveActorMediaAction(formData: FormData) {
     orderBy: { sortOrder: "asc" },
   });
   const idx = photoList.findIndex((m) => m.id === mediaId);
-  if (idx < 0) throw new Error("Файл не найден или для него недоступна смена порядка");
+  if (idx < 0) return { ok: false, error: "Файл не найден" };
   const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-  if (swapIdx < 0 || swapIdx >= photoList.length) return;
+  if (swapIdx < 0 || swapIdx >= photoList.length) return { ok: true };
 
   const a = photoList[idx];
   const b = photoList[swapIdx];
-  await prisma.$transaction([
-    prisma.mediaFile.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-    prisma.mediaFile.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.mediaFile.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
+      prisma.mediaFile.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
+    ]);
+  } catch {
+    return { ok: false, error: "Не удалось изменить порядок" };
+  }
 
   revalidatePath("/actor/profile");
   revalidatePath("/actor/profile/edit");
   revalidatePath(`/actors/${profile.id}`);
   revalidatePath("/explore");
+  return { ok: true };
 }
 
-/** Удаление фото из портфолио (не аватар). */
-export async function deleteActorPortfolioPhotoAction(formData: FormData) {
+/** Удаление фото из портфолио (не аватар). Без throw — иначе полная страница ошибки Next.js. */
+export async function deleteActorPortfolioPhotoAction(
+  formData: FormData,
+): Promise<ActorMediaMutationResult> {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ACTOR") throw new Error("Forbidden");
+  if (!session?.user || session.user.role !== "ACTOR") {
+    return { ok: false, error: "Нет доступа" };
+  }
 
-  const mediaId = String(formData.get("mediaId") ?? "");
-  if (!mediaId) throw new Error("Нет файла");
+  const mediaId = String(formData.get("mediaId") ?? "").trim();
+  if (!mediaId) return { ok: false, error: "Нет файла" };
 
   const profile = await prisma.actorProfile.findUnique({ where: { userId: session.user.id } });
-  if (!profile) throw new Error("Нет профиля");
+  if (!profile) return { ok: false, error: "Нет профиля" };
 
   const media = await prisma.mediaFile.findFirst({
     where: {
@@ -142,26 +158,37 @@ export async function deleteActorPortfolioPhotoAction(formData: FormData) {
       isAvatar: false,
     },
   });
-  if (!media) throw new Error("Файл не найден");
+  if (!media) return { ok: false, error: "Файл не найден" };
 
-  await prisma.mediaFile.delete({ where: { id: mediaId } });
-
-  revalidatePath("/actor/profile");
-  revalidatePath("/actor/profile/edit");
-  revalidatePath(`/actors/${profile.id}`);
-  revalidatePath("/explore");
+  try {
+    await deletePublicUploadFile(media.storageKey);
+    await prisma.mediaFile.delete({ where: { id: mediaId } });
+    revalidatePath("/actor/profile");
+    revalidatePath("/actor/profile/edit");
+    revalidatePath(`/actors/${profile.id}`);
+    revalidatePath("/explore");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Не удалось удалить файл" };
+  }
 }
 
-/** Удаление фото портфолио продюсера (не аватар). */
-export async function deleteProducerPortfolioPhotoAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "PRODUCER") throw new Error("Forbidden");
+export type ProducerMediaMutationResult = { ok: true } | { ok: false; error: string };
 
-  const mediaId = String(formData.get("mediaId") ?? "");
-  if (!mediaId) throw new Error("Нет файла");
+/** Удаление фото портфолио продюсера (не аватар). Без throw — иначе полная страница ошибки Next.js. */
+export async function deleteProducerPortfolioPhotoAction(
+  formData: FormData,
+): Promise<ProducerMediaMutationResult> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "PRODUCER") {
+    return { ok: false, error: "Нет доступа" };
+  }
+
+  const mediaId = String(formData.get("mediaId") ?? "").trim();
+  if (!mediaId) return { ok: false, error: "Нет файла" };
 
   const profile = await prisma.producerProfile.findUnique({ where: { userId: session.user.id } });
-  if (!profile) throw new Error("Нет профиля");
+  if (!profile) return { ok: false, error: "Нет профиля" };
 
   const media = await prisma.mediaFile.findFirst({
     where: {
@@ -171,27 +198,38 @@ export async function deleteProducerPortfolioPhotoAction(formData: FormData) {
       isAvatar: false,
     },
   });
-  if (!media) throw new Error("Файл не найден");
+  if (!media) return { ok: false, error: "Файл не найден" };
 
-  await prisma.mediaFile.delete({ where: { id: mediaId } });
-
-  revalidatePath("/producer/profile");
-  revalidatePath("/producer/profile/edit");
-  revalidatePath(`/producers/${profile.id}`);
-  revalidatePath("/explore");
+  try {
+    await deletePublicUploadFile(media.storageKey);
+    await prisma.mediaFile.delete({ where: { id: mediaId } });
+    revalidatePath("/producer/profile");
+    revalidatePath("/producer/profile/edit");
+    revalidatePath(`/producers/${profile.id}`);
+    revalidatePath("/explore");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Не удалось удалить файл" };
+  }
 }
 
 /** Порядок только у фото портфолио продюсера (без аватара). */
-export async function moveProducerPortfolioPhotoAction(formData: FormData) {
+export async function moveProducerPortfolioPhotoAction(
+  formData: FormData,
+): Promise<ProducerMediaMutationResult> {
   const session = await auth();
-  if (!session?.user || session.user.role !== "PRODUCER") throw new Error("Forbidden");
+  if (!session?.user || session.user.role !== "PRODUCER") {
+    return { ok: false, error: "Нет доступа" };
+  }
 
-  const mediaId = String(formData.get("mediaId") ?? "");
+  const mediaId = String(formData.get("mediaId") ?? "").trim();
   const direction = String(formData.get("direction") ?? "");
-  if (!mediaId || (direction !== "up" && direction !== "down")) throw new Error("Некорректные данные");
+  if (!mediaId || (direction !== "up" && direction !== "down")) {
+    return { ok: false, error: "Некорректные данные" };
+  }
 
   const profile = await prisma.producerProfile.findUnique({ where: { userId: session.user.id } });
-  if (!profile) throw new Error("Нет профиля");
+  if (!profile) return { ok: false, error: "Нет профиля" };
 
   const photoList = await prisma.mediaFile.findMany({
     where: {
@@ -202,21 +240,25 @@ export async function moveProducerPortfolioPhotoAction(formData: FormData) {
     orderBy: { sortOrder: "asc" },
   });
   const idx = photoList.findIndex((m) => m.id === mediaId);
-  if (idx < 0) throw new Error("Файл не найден");
+  if (idx < 0) return { ok: false, error: "Файл не найден" };
   const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-  if (swapIdx < 0 || swapIdx >= photoList.length) return;
+  if (swapIdx < 0 || swapIdx >= photoList.length) return { ok: true };
 
   const a = photoList[idx];
   const b = photoList[swapIdx];
-  await prisma.$transaction([
-    prisma.mediaFile.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-    prisma.mediaFile.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-  ]);
-
-  revalidatePath("/producer/profile");
-  revalidatePath("/producer/profile/edit");
-  revalidatePath(`/producers/${profile.id}`);
-  revalidatePath("/explore");
+  try {
+    await prisma.$transaction([
+      prisma.mediaFile.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
+      prisma.mediaFile.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
+    ]);
+    revalidatePath("/producer/profile");
+    revalidatePath("/producer/profile/edit");
+    revalidatePath(`/producers/${profile.id}`);
+    revalidatePath("/explore");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Не удалось изменить порядок" };
+  }
 }
 
 export async function moveProducerMediaAction(formData: FormData) {

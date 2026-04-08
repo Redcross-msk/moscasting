@@ -15,6 +15,7 @@ import {
   adminSetCourseLeadFromFormAction,
 } from "@/features/admin/service-leads-actions";
 import { CourseSlotDeleteButton } from "@/components/admin/service-slot-delete-buttons";
+import { AdminPaginatedCardList } from "@/components/admin/admin-paginated-card-list";
 import { cn } from "@/lib/utils";
 
 const statusRu: Record<ServiceLeadStatus, string> = {
@@ -104,7 +105,7 @@ export default async function AdminObucheniePage({
             {slotsWithLive.length === 0 ? (
               <p className="text-sm text-muted-foreground">Пока нет записей.</p>
             ) : (
-              <div className="space-y-4">
+              <AdminPaginatedCardList>
                 {slotsWithLive.map((s) => {
                   const d1 = s.startDay.toLocaleDateString("ru-RU");
                   const d2 = s.secondDay ? s.secondDay.toLocaleDateString("ru-RU") : null;
@@ -156,7 +157,7 @@ export default async function AdminObucheniePage({
                     </Card>
                   );
                 })}
-              </div>
+              </AdminPaginatedCardList>
             )}
           </div>
         </div>
@@ -165,43 +166,45 @@ export default async function AdminObucheniePage({
           {leads.length === 0 ? (
             <p className="text-sm text-muted-foreground">Заявок пока нет.</p>
           ) : (
-            leads.map((l) => (
-              <Card key={l.id}>
-                <CardContent className="space-y-3 py-4 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="font-medium">{l.fullName}</span>
-                    <span className="text-muted-foreground">{l.email}</span>
-                  </div>
-                  <p className="text-muted-foreground">{l.phone}</p>
-                  <p>
-                    Дата рождения: {l.birthDate.toLocaleDateString("ru-RU")} · Курс:{" "}
-                    {l.courseType === "EIGHT_HOURS" ? "8 ч" : "16 ч"}
-                  </p>
-                  <p>
-                    Слот: {l.slot.startDay.toLocaleDateString("ru-RU")}
-                    {l.slot.secondDay ? ` — ${l.slot.secondDay.toLocaleDateString("ru-RU")}` : ""}
-                  </p>
-                  <p className="whitespace-pre-wrap text-muted-foreground">{l.experience}</p>
-                  <form action={adminSetCourseLeadFromFormAction} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="leadId" value={l.id} />
-                    <select
-                      name="status"
-                      defaultValue={l.status}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      {Object.values(ServiceLeadStatus).map((st) => (
-                        <option key={st} value={st}>
-                          {statusRu[st]}
-                        </option>
-                      ))}
-                    </select>
-                    <Button type="submit" size="sm">
-                      Обновить статус
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            ))
+            <AdminPaginatedCardList>
+              {leads.map((l) => (
+                <Card key={l.id}>
+                  <CardContent className="space-y-3 py-4 text-sm">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <span className="font-medium">{l.fullName}</span>
+                      <span className="text-muted-foreground">{l.email}</span>
+                    </div>
+                    <p className="text-muted-foreground">{l.phone}</p>
+                    <p>
+                      Дата рождения: {l.birthDate.toLocaleDateString("ru-RU")} · Курс:{" "}
+                      {l.courseType === "EIGHT_HOURS" ? "8 ч" : "16 ч"}
+                    </p>
+                    <p>
+                      Слот: {l.slot.startDay.toLocaleDateString("ru-RU")}
+                      {l.slot.secondDay ? ` — ${l.slot.secondDay.toLocaleDateString("ru-RU")}` : ""}
+                    </p>
+                    <p className="whitespace-pre-wrap text-muted-foreground">{l.experience}</p>
+                    <form action={adminSetCourseLeadFromFormAction} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="leadId" value={l.id} />
+                      <select
+                        name="status"
+                        defaultValue={l.status}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        {Object.values(ServiceLeadStatus).map((st) => (
+                          <option key={st} value={st}>
+                            {statusRu[st]}
+                          </option>
+                        ))}
+                      </select>
+                      <Button type="submit" size="sm">
+                        Обновить статус
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              ))}
+            </AdminPaginatedCardList>
           )}
         </div>
       )}

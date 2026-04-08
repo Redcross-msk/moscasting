@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AdminPaginatedCardList } from "@/components/admin/admin-paginated-card-list";
 import { BlockCastingButton } from "./block-button";
 import { AdminDeleteCastingButton } from "./delete-casting-button";
 
@@ -71,37 +72,39 @@ export default async function AdminCastingsPage({
         {castings.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ничего не найдено.</p>
         ) : (
-          castings.map((c) => (
-            <Card key={c.id}>
-              <CardContent className="flex flex-col gap-3 py-4 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <div>
-                  <Link href={`/castings/${c.id}`} className="font-medium hover:underline">
-                    {c.title}
-                  </Link>
-                  <p className="text-muted-foreground">
-                    {c.producerProfile.companyName} · {c.city.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Размещён: {new Date(c.createdAt).toLocaleString("ru-RU")}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    <Badge variant="outline">{c.status}</Badge>
-                    <Badge variant="secondary">{c.moderationStatus}</Badge>
+          <AdminPaginatedCardList pageSizeMobile={6} pageSizeDesktop={9}>
+            {castings.map((c) => (
+              <Card key={c.id}>
+                <CardContent className="flex flex-col gap-3 py-4 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div>
+                    <Link href={`/castings/${c.id}`} className="font-medium hover:underline">
+                      {c.title}
+                    </Link>
+                    <p className="text-muted-foreground">
+                      {c.producerProfile.companyName} · {c.city.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Размещён: {new Date(c.createdAt).toLocaleString("ru-RU")}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      <Badge variant="outline">{c.status}</Badge>
+                      <Badge variant="secondary">{c.moderationStatus}</Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/admin/castings/${c.id}/edit`}>Редактировать</Link>
-                  </Button>
-                  <BlockCastingButton
-                    castingId={c.id}
-                    blocked={c.status === "BLOCKED" || c.moderationStatus === "BLOCKED"}
-                  />
-                  <AdminDeleteCastingButton castingId={c.id} />
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/admin/castings/${c.id}/edit`}>Редактировать</Link>
+                    </Button>
+                    <BlockCastingButton
+                      castingId={c.id}
+                      blocked={c.status === "BLOCKED" || c.moderationStatus === "BLOCKED"}
+                    />
+                    <AdminDeleteCastingButton castingId={c.id} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </AdminPaginatedCardList>
         )}
       </div>
     </div>

@@ -7,8 +7,9 @@ import { CastingPublicDetail } from "@/components/casting-public-detail";
 import { CastingQuickApply } from "@/components/casting-quick-apply";
 import { ExploreRoleBar } from "@/components/explore-role-bar";
 import { FavoriteHeartButton } from "@/components/favorite-heart-button";
-import { Button } from "@/components/ui/button";
-import { getCastingPublic, recordCastingView } from "@/server/services/casting.service";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { getCastingPublic, isCastingPublicViewOnly, recordCastingView } from "@/server/services/casting.service";
+import { cn } from "@/lib/utils";
 import { ReportCastingButton } from "./report-button";
 
 export default async function CastingDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,15 +36,31 @@ export default async function CastingDetailPage({ params }: { params: Promise<{ 
     }
   }
 
+  const viewOnly = isCastingPublicViewOnly(casting.status);
+
   let castingFavorited = false;
-  if (session?.user?.id) {
+  if (!viewOnly && session?.user?.id) {
     const fav = await prisma.favoriteCasting.findUnique({
       where: { userId_castingId: { userId: session.user.id, castingId: id } },
     });
     castingFavorited = Boolean(fav);
   }
 
-  const topActions = (
+  const topActions = viewOnly ? (
+    <>
+      <div
+        className={cn(
+          buttonVariants({ variant: "outline", size: "lg" }),
+          "pointer-events-none w-full border-primary text-primary hover:bg-transparent",
+          "text-center text-xs font-semibold uppercase tracking-wide",
+        )}
+        role="status"
+      >
+        КАСТИНГ ЗАВЕРШЕН
+      </div>
+      {session?.user ? <ReportCastingButton castingId={id} compactLabel className="font-medium" /> : null}
+    </>
+  ) : (
     <>
       {session?.user ? (
         <div className="flex justify-end lg:justify-start">
@@ -69,14 +86,18 @@ export default async function CastingDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-8 pb-10">
-      <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 border-b border-border pb-4 lg:flex-nowrap lg:items-center lg:justify-between">
         <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
           <Link href="/explore?tab=castings">
             <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
             На главную
           </Link>
         </Button>
-        {session?.user?.role ? <ExploreRoleBar role={session.user.role} /> : null}
+        {session?.user?.role ? (
+          <div className="min-w-0 flex-1 lg:w-auto lg:flex-none">
+            <ExploreRoleBar role={session.user.role} />
+          </div>
+        ) : null}
       </div>
 
       <CastingPublicDetail casting={casting} topActions={topActions} />

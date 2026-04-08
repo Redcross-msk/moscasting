@@ -22,3 +22,10 @@ export function russianYearsWord(n: number): string {
   if (d >= 2 && d <= 4) return "года";
   return "лет";
 }
+
+/** Фамилия и имя для карточки профиля в чате (первые два слова ФИО, без отчества). */
+export function formatActorSurnameAndFirstName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) return parts.join(" ");
+  return `${parts[0]} ${parts[1]}`;
+}

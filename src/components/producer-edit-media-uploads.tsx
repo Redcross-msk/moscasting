@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { uploadProducerAvatarFormAction } from "@/features/media/upload-actions";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/features/media/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 type PortfolioPhotoItem = {
   id: string;
@@ -26,11 +28,7 @@ type StagedPortfolioPhoto = {
 };
 
 function resolvePhotoSrc(p: Pick<PortfolioPhotoItem, "publicUrl" | "storageKey">): string | null {
-  const u = p.publicUrl?.trim();
-  if (u) return u;
-  const key = p.storageKey?.replace(/^\/+/, "").replace(/\\/g, "/");
-  if (key) return `/uploads/${key}`;
-  return null;
+  return resolveUploadedMediaSrc(p.publicUrl, p.storageKey ?? null);
 }
 
 function mergePortfolioPhotos(server: PortfolioPhotoItem[], extra: PortfolioPhotoItem[]): PortfolioPhotoItem[] {
@@ -63,10 +61,13 @@ export function ProducerEditMediaUploads({
   initialAvatarUrl: string | null;
   portfolioPhotos: PortfolioPhotoItem[];
 }) {
+  const router = useRouter();
   const [avatarPending, startAvatarTransition] = useTransition();
+  const [portfolioMutPending, startPortfolioMut] = useTransition();
 
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const [photosErr, setPhotosErr] = useState<string | null>(null);
+  const [portfolioMutErr, setPortfolioMutErr] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUrlAfterUpload, setAvatarUrlAfterUpload] = useState<string | null>(null);
   const [extraPortfolioPhotos, setExtraPortfolioPhotos] = useState<PortfolioPhotoItem[]>([]);
@@ -83,7 +84,14 @@ export function ProducerEditMediaUploads({
     setAvatarUrlAfterUpload(null);
   }, [initialAvatarUrl]);
 
-  const avatarDisplay = avatarPreview ?? avatarUrlAfterUpload ?? initialAvatarUrl;
+  const avatarDisplayRaw = avatarPreview ?? avatarUrlAfterUpload ?? initialAvatarUrl;
+  const avatarDisplay =
+    avatarPreview ?? resolveUploadedMediaSrc(avatarUrlAfterUpload ?? initialAvatarUrl, null);
+
+  useEffect(() => {
+    const serverIds = new Set(portfolioPhotosFromServer.map((p) => p.id));
+    setExtraPortfolioPhotos((prev) => prev.filter((p) => !serverIds.has(p.id)));
+  }, [portfolioPhotosFromServer]);
 
   const mergedPortfolioPhotos = useMemo(
     () => mergePortfolioPhotos(portfolioPhotosFromServer, extraPortfolioPhotos),
@@ -221,7 +229,7 @@ export function ProducerEditMediaUploads({
             {avatarDisplay ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={avatarDisplay}
+                key={avatarDisplayRaw ?? "av"}
                 src={avatarDisplay}
                 alt=""
                 className="h-full w-full object-cover"
@@ -241,7 +249,7 @@ export function ProducerEditMediaUploads({
             <input
               ref={avatarInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               className="sr-only"
               onChange={(e) => {
                 const input = e.target;
@@ -292,7 +300,7 @@ export function ProducerEditMediaUploads({
           <input
             ref={portfolioInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             multiple
             className="sr-only"
             disabled={photosUploading}
@@ -319,6 +327,7 @@ export function ProducerEditMediaUploads({
         </div>
 
         {photosErr ? <p className="text-sm text-destructive">{photosErr}</p> : null}
+        {portfolioMutErr ? <p className="text-sm text-destructive">{portfolioMutErr}</p> : null}
         {photosOk ? (
           <p className="text-sm font-medium text-primary" role="status">
             Фото сохранены.
@@ -341,47 +350,78 @@ export function ProducerEditMediaUploads({
                         Превью недоступно
                       </div>
                     )}
-                    <form action={deleteProducerPortfolioPhotoAction} className="absolute right-1 top-1 z-10">
-                      <input type="hidden" name="mediaId" value={p.id} />
+                    <div className="absolute right-1 top-1 z-10">
                       <Button
-                        type="submit"
+                        type="button"
                         size="icon"
                         variant="secondary"
                         className="h-7 w-7 rounded-full border border-border bg-background/95 shadow-sm hover:bg-destructive hover:text-destructive-foreground"
-                        disabled={photosUploading}
+                        disabled={photosUploading || portfolioMutPending}
                         aria-label="Удалить фото"
+                        onClick={() => {
+                          startPortfolioMut(async () => {
+                            setPortfolioMutErr(null);
+                            const fd = new FormData();
+                            fd.set("mediaId", p.id);
+                            const res = await deleteProducerPortfolioPhotoAction(fd);
+                            if (!res.ok) {
+                              setPortfolioMutErr(res.error);
+                              return;
+                            }
+                            setExtraPortfolioPhotos((prev) => prev.filter((x) => x.id !== p.id));
+                            router.refresh();
+                          });
+                        }}
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
-                    </form>
+                    </div>
                   </div>
                   <div className="flex flex-wrap justify-center gap-1">
-                    <form action={moveProducerPortfolioPhotoAction} className="inline">
-                      <input type="hidden" name="mediaId" value={p.id} />
-                      <input type="hidden" name="direction" value="up" />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 min-w-8 px-0"
-                        disabled={orderableIndex === 0 || photosUploading}
-                      >
-                        ↑
-                      </Button>
-                    </form>
-                    <form action={moveProducerPortfolioPhotoAction} className="inline">
-                      <input type="hidden" name="mediaId" value={p.id} />
-                      <input type="hidden" name="direction" value="down" />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 min-w-8 px-0"
-                        disabled={orderableIndex >= mergedPortfolioPhotos.length - 1 || photosUploading}
-                      >
-                        ↓
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 min-w-8 px-0"
+                      disabled={orderableIndex === 0 || photosUploading || portfolioMutPending}
+                      onClick={() => {
+                        startPortfolioMut(async () => {
+                          setPortfolioMutErr(null);
+                          const fd = new FormData();
+                          fd.set("mediaId", p.id);
+                          fd.set("direction", "up");
+                          const res = await moveProducerPortfolioPhotoAction(fd);
+                          if (!res.ok) setPortfolioMutErr(res.error);
+                          else router.refresh();
+                        });
+                      }}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 min-w-8 px-0"
+                      disabled={
+                        orderableIndex >= mergedPortfolioPhotos.length - 1 ||
+                        photosUploading ||
+                        portfolioMutPending
+                      }
+                      onClick={() => {
+                        startPortfolioMut(async () => {
+                          setPortfolioMutErr(null);
+                          const fd = new FormData();
+                          fd.set("mediaId", p.id);
+                          fd.set("direction", "down");
+                          const res = await moveProducerPortfolioPhotoAction(fd);
+                          if (!res.ok) setPortfolioMutErr(res.error);
+                          else router.refresh();
+                        });
+                      }}
+                    >
+                      ↓
+                    </Button>
                   </div>
                 </div>
               );

@@ -90,17 +90,23 @@ export function AdminHomepageCastingsPickForm({
       </form>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex h-[min(85dvh,30rem)] max-h-[85dvh] w-[calc(100vw-1.25rem)] max-w-lg flex-col gap-4 overflow-hidden p-4 max-sm:top-[5dvh] max-sm:translate-y-0 sm:w-full sm:p-6">
+          <DialogHeader className="shrink-0 space-y-1.5 text-left">
             <DialogTitle>Кастинг — слот {pickPos ?? "—"}</DialogTitle>
           </DialogHeader>
           <Input
             placeholder="Поиск по названию или городу…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="shrink-0"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            inputMode="search"
+            enterKeyHint="search"
+            className="h-11 shrink-0 text-base"
           />
-          <div className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-md border border-border">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-md border border-border [-webkit-overflow-scrolling:touch]">
             <button
               type="button"
               className="block w-full border-b px-3 py-2.5 text-left text-sm hover:bg-muted"
@@ -192,17 +198,23 @@ export function AdminHomepageActorsPickForm({
       </form>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex h-[min(85dvh,30rem)] max-h-[85dvh] w-[calc(100vw-1.25rem)] max-w-lg flex-col gap-4 overflow-hidden p-4 max-sm:top-[5dvh] max-sm:translate-y-0 sm:w-full sm:p-6">
+          <DialogHeader className="shrink-0 space-y-1.5 text-left">
             <DialogTitle>Актёр — слот {pickPos ?? "—"}</DialogTitle>
           </DialogHeader>
           <Input
             placeholder="Поиск по имени или городу…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="shrink-0"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            inputMode="search"
+            enterKeyHint="search"
+            className="h-11 shrink-0 text-base"
           />
-          <div className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-md border border-border">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-md border border-border [-webkit-overflow-scrolling:touch]">
             <button
               type="button"
               className="block w-full border-b px-3 py-2.5 text-left text-sm hover:bg-muted"

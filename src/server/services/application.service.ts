@@ -1,6 +1,9 @@
 import { ApplicationStatus, CastingStatus, ModerationStatus, Prisma } from "@prisma/client";
+import type { CastingDbPaymentAndDates } from "@/lib/casting-payment-period";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 import { prisma } from "@/lib/db";
 import { calculateAge } from "@/lib/utils";
+import { actorProfileCatalogInclude } from "@/server/services/actor-profile.service";
 import { createInAppNotification } from "@/server/services/notification.service";
 
 export async function applyToCasting(params: {
@@ -47,11 +50,12 @@ export async function applyToCasting(params: {
 
     const actor = await tx.actorProfile.findUnique({
       where: { id: params.actorProfileId },
-      include: { city: true },
+      include: actorProfileCatalogInclude,
     });
     if (!actor) throw new Error("Профиль актёра не найден");
 
     const age = calculateAge(new Date(actor.birthDate));
+    const avatarUrl = actor.media[0]?.publicUrl?.trim() || null;
     const payload: Prisma.InputJsonValue = {
       kind: "actor_profile",
       actorProfileId: actor.id,
@@ -60,6 +64,7 @@ export async function applyToCasting(params: {
       age,
       heightCm: actor.heightCm,
       weightKg: actor.weightKg,
+      avatarUrl,
     };
     const body =
       params.coverNote?.trim() ||
@@ -357,7 +362,7 @@ export async function acceptToProjectApplication(applicationId: string, producer
     throw new Error("Уже принято в проект");
   }
 
-  const c = app.casting;
+  const c = app.casting as typeof app.casting & CastingDbPaymentAndDates;
   const city = await prisma.city.findUnique({ where: { id: c.cityId }, select: { name: true } });
   const payload: Prisma.InputJsonValue = {
     kind: "casting_invite_details",
@@ -371,6 +376,8 @@ export async function acceptToProjectApplication(applicationId: string, producer
     workHoursNote: c.workHoursNote,
     paymentInfo: c.paymentInfo,
     paymentRub: c.paymentRub,
+    paymentPeriod: c.paymentPeriod,
+    shootDates: parseShootDatesYmdFromJson(c.shootDatesJson) ?? [],
     cityName: city?.name ?? "",
   };
 

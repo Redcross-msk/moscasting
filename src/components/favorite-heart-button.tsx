@@ -12,6 +12,8 @@ export function FavoriteHeartButton({
   initial,
   className,
   label = "В избранное",
+  /** Карточка кастинга в каталоге: моб. — квадрат с сердцем у «Откликнуться»; десктоп — текст под кнопкой. */
+  presentation = "default",
 }: {
   kind: "casting" | "actor";
   targetId: string;
@@ -19,9 +21,58 @@ export function FavoriteHeartButton({
   className?: string;
   /** aria-label */
   label?: string;
+  presentation?: "default" | "castingCatalog";
 }) {
   const [on, setOn] = useState(initial);
   const [pending, start] = useTransition();
+
+  const onClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    start(async () => {
+      const fn = kind === "casting" ? toggleFavoriteCastingAction : toggleFavoriteActorAction;
+      const { favorited } = await fn(targetId);
+      setOn(favorited);
+    });
+  };
+
+  if (presentation === "castingCatalog") {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        className={cn(
+          "shrink-0 rounded-xl shadow-sm",
+          "h-11 w-11 p-0 md:h-11 md:w-full md:px-3",
+          on
+            ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+            : "border-primary/30 bg-background text-primary hover:bg-primary/5",
+          className,
+        )}
+        aria-label={on ? "Убрать из избранного" : "Добавить в избранное"}
+        aria-pressed={on}
+        onClick={onClick}
+      >
+        <Heart
+          className={cn(
+            "mx-auto h-5 w-5 transition-colors md:hidden",
+            on ? "fill-primary-foreground text-primary-foreground" : "text-primary",
+          )}
+          fill={on ? "currentColor" : "none"}
+          strokeWidth={1.75}
+        />
+        <span
+          className={cn(
+            "hidden px-1 text-center text-xs font-semibold uppercase leading-tight tracking-wide md:inline",
+            on && "text-primary-foreground",
+          )}
+        >
+          {on ? "В ИЗБРАННОМ" : "Добавить в избранное"}
+        </span>
+      </Button>
+    );
+  }
 
   return (
     <Button
@@ -36,15 +87,7 @@ export function FavoriteHeartButton({
       )}
       aria-label={label}
       aria-pressed={on}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        start(async () => {
-          const fn = kind === "casting" ? toggleFavoriteCastingAction : toggleFavoriteActorAction;
-          const { favorited } = await fn(targetId);
-          setOn(favorited);
-        });
-      }}
+      onClick={onClick}
     >
       <Heart
         className={cn("h-5 w-5 transition-colors", on ? "fill-primary text-primary" : "text-muted-foreground")}

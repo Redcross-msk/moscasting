@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { CastingInviteDetailsPayload } from "@/lib/message-payload";
+import { formatShootDateTimeRu } from "@/lib/casting-display";
+import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -14,16 +16,8 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function CastingInviteMessageCard({ data }: { data: CastingInviteDetailsPayload }) {
-  const when = data.scheduledAt
-    ? new Intl.DateTimeFormat("ru-RU", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(data.scheduledAt))
-    : null;
+  const when = formatShootDateTimeRu(data.scheduledAt, data.shootStartTime, data.shootDates);
+  const payLine = formatCastingPaymentLine(data.paymentRub, data.paymentInfo, data.paymentPeriod);
 
   const place =
     [data.metroStation, data.addressLine].filter(Boolean).join(" · ") || data.metroOrPlace || null;
@@ -34,17 +28,10 @@ export function CastingInviteMessageCard({ data }: { data: CastingInviteDetailsP
       <p className="mt-1 text-sm font-semibold leading-snug text-foreground">{data.title}</p>
       <div className="mt-2.5 space-y-2 sm:space-y-2.5" role="list">
         {data.cityName ? <Row label="Город">{data.cityName}</Row> : null}
-        {when ? <Row label="Дата и время">{when}</Row> : null}
-        {data.shootStartTime ? <Row label="Сбор / старт">{data.shootStartTime}</Row> : null}
+        {when ? <Row label="Дата съёмки">{when}</Row> : null}
         {place ? <Row label="Место">{place}</Row> : null}
         {data.workHoursNote ? <Row label="Смена">{data.workHoursNote}</Row> : null}
-        {(data.paymentRub != null || data.paymentInfo) && (
-          <Row label="Оплата">
-            {data.paymentRub != null ? `${data.paymentRub.toLocaleString("ru-RU")} ₽` : null}
-            {data.paymentRub != null && data.paymentInfo ? " · " : null}
-            {data.paymentInfo}
-          </Row>
-        )}
+        {payLine ? <Row label="Оплата">{payLine}</Row> : null}
       </div>
       <Link
         href={`/castings/${data.castingId}`}

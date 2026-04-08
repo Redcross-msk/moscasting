@@ -3,6 +3,7 @@ import { CastingStatus, ModerationStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getPublicActorProfile } from "@/server/services/actor-profile.service";
+import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 import { ActorProfileView } from "@/components/actor-profile-view";
 
 export default async function ActorPublicPage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,7 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
   if (!profile) notFound();
 
   const session = await auth();
+  const mediaWithLikes = await attachPortfolioLikesToPhotos(profile.media, session?.user?.id);
 
   const role = session?.user?.role;
   const showCatalogBack =
@@ -43,6 +45,7 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
       variant="public"
       showCatalogBack={showCatalogBack}
       producerInvite={producerInvite}
+      canLikePortfolioPhotos={Boolean(session?.user?.id)}
       profile={{
         fullName: profile.fullName,
         birthDate: profile.birthDate,
@@ -61,7 +64,7 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
         ratingAverage: profile.ratingAverage,
         ratingCount: profile.ratingCount,
       }}
-      media={profile.media.map((m) => ({
+      media={mediaWithLikes.map((m) => ({
         id: m.id,
         kind: m.kind,
         publicUrl: m.publicUrl,
@@ -69,6 +72,8 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
         isAvatar: m.isAvatar,
         sortOrder: m.sortOrder,
         moderationStatus: m.moderationStatus,
+        likeCount: m.likeCount,
+        likedByMe: m.likedByMe,
       }))}
     />
   );

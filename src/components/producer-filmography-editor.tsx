@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 export type FilmographyEntryRow = {
   id: string;
@@ -147,15 +148,17 @@ export function ProducerFilmographyEditor({ entries }: { entries: FilmographyEnt
         <p className="text-sm text-muted-foreground">Пока нет записей — добавьте проект кнопкой выше.</p>
       ) : (
         <ul className="space-y-3">
-          {entries.map((e) => (
+          {entries.map((e) => {
+            const posterSrc = resolveUploadedMediaSrc(e.posterPublicUrl, null);
+            return (
             <li
               key={e.id}
               className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center"
             >
               <div className="h-28 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
-                {e.posterPublicUrl ? (
+                {posterSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.posterPublicUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={posterSrc} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
                     Нет постера
@@ -205,7 +208,8 @@ export function ProducerFilmographyEditor({ entries }: { entries: FilmographyEnt
                 <Trash2 className="h-4 w-4" />
               </Button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

@@ -4,9 +4,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SuspendUserButton } from "./suspend-button";
-import { BlockActorButton } from "../actors/block-button";
-import { BlockProducerButton } from "./block-producer-button";
+import { AdminUserBlockButton } from "./admin-user-block-button";
 import { DeleteUserButton } from "./delete-user-button";
 
 const tabs = [
@@ -74,8 +72,13 @@ export default async function AdminUsersPage({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <SuspendUserButton userId={a.user.id} suspended={a.user.status === "SUSPENDED"} />
-                  <BlockActorButton profileId={a.id} blocked={a.isBlockedByAdmin} />
+                  <AdminUserBlockButton
+                    kind="actor"
+                    userId={a.user.id}
+                    profileId={a.id}
+                    suspended={a.user.status === "SUSPENDED"}
+                    profileBlocked={a.isBlockedByAdmin}
+                  />
                   <DeleteUserButton userId={a.user.id} />
                 </div>
               </CardContent>
@@ -100,8 +103,13 @@ export default async function AdminUsersPage({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <SuspendUserButton userId={p.user.id} suspended={p.user.status === "SUSPENDED"} />
-                  <BlockProducerButton profileId={p.id} blocked={p.isBlockedByAdmin} />
+                  <AdminUserBlockButton
+                    kind="producer"
+                    userId={p.user.id}
+                    profileId={p.id}
+                    suspended={p.user.status === "SUSPENDED"}
+                    profileBlocked={p.isBlockedByAdmin}
+                  />
                   <DeleteUserButton userId={p.user.id} />
                 </div>
               </CardContent>

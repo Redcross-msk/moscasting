@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChatsNavButton } from "@/components/chats-nav-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -7,11 +8,15 @@ type Role = "ACTOR" | "PRODUCER" | "ADMIN" | string;
 type ExploreRoleBarProps = {
   role: Role;
   className?: string;
-  /** На /explore вкладка «Избранное» уже есть — не дублировать кнопку */
-  omitFavoritesLink?: boolean;
+  /** Активная вкладка /explore?tab=favorites — подсветка «Избранное», остальные outline */
+  favoritesLinkActive?: boolean;
 };
 
-export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRoleBarProps) {
+/** Узкие экраны: перенос строк, без w-max (иначе обрезание слева); широкие — одна строка справа. */
+const roleNavClusterClass =
+  "flex min-w-0 w-full max-w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-2 lg:ml-auto lg:w-max lg:flex-nowrap lg:justify-end lg:gap-2";
+
+export function ExploreRoleBar({ role, className, favoritesLinkActive }: ExploreRoleBarProps) {
   const barBtn =
     "h-8 shrink-0 whitespace-nowrap px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm";
 
@@ -19,15 +24,13 @@ export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRo
     return (
       <div
         className={cn(
-          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
+          roleNavClusterClass,
           className,
         )}
       >
-        {!omitFavoritesLink ? (
-          <Button variant="outline" size="sm" className={barBtn} asChild>
-            <Link href="/explore?tab=favorites">Избранное</Link>
-          </Button>
-        ) : null}
+        <Button variant={favoritesLinkActive ? "default" : "outline"} size="sm" className={barBtn} asChild>
+          <Link href="/explore?tab=favorites">Избранное</Link>
+        </Button>
         <Button variant="outline" size="sm" className={barBtn} asChild>
           <Link href="/admin">Админка</Link>
         </Button>
@@ -39,24 +42,20 @@ export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRo
     return (
       <div
         className={cn(
-          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
+          roleNavClusterClass,
           className,
         )}
       >
-        <Button variant="default" size="sm" className={barBtn} asChild>
+        <Button variant={favoritesLinkActive ? "outline" : "default"} size="sm" className={barBtn} asChild>
           <Link href="/actor/profile">Профиль</Link>
         </Button>
         <Button variant="outline" size="sm" className={barBtn} asChild>
           <Link href="/actor/applications">Мои отклики</Link>
         </Button>
-        <Button variant="outline" size="sm" className={barBtn} asChild>
-          <Link href="/actor/chats">Чаты</Link>
+        <ChatsNavButton href="/actor/chats" className={barBtn} />
+        <Button variant={favoritesLinkActive ? "default" : "outline"} size="sm" className={barBtn} asChild>
+          <Link href="/explore?tab=favorites">Избранное</Link>
         </Button>
-        {!omitFavoritesLink ? (
-          <Button variant="outline" size="sm" className={barBtn} asChild>
-            <Link href="/explore?tab=favorites">Избранное</Link>
-          </Button>
-        ) : null}
       </div>
     );
   }
@@ -65,11 +64,11 @@ export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRo
     return (
       <div
         className={cn(
-          "flex w-max min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:ml-auto",
+          roleNavClusterClass,
           className,
         )}
       >
-        <Button variant="default" size="sm" className={barBtn} asChild>
+        <Button variant={favoritesLinkActive ? "outline" : "default"} size="sm" className={barBtn} asChild>
           <Link href="/producer/profile">Профиль</Link>
         </Button>
         <Button variant="outline" size="sm" className={barBtn} asChild>
@@ -78,14 +77,10 @@ export function ExploreRoleBar({ role, className, omitFavoritesLink }: ExploreRo
         <Button variant="outline" size="sm" className={cn(barBtn, "font-semibold")} asChild>
           <Link href="/producer/castings/new">Добавить кастинг</Link>
         </Button>
-        <Button variant="outline" size="sm" className={barBtn} asChild>
-          <Link href="/producer/chats">Чаты</Link>
+        <ChatsNavButton href="/producer/chats" className={barBtn} />
+        <Button variant={favoritesLinkActive ? "default" : "outline"} size="sm" className={barBtn} asChild>
+          <Link href="/explore?tab=favorites">Избранное</Link>
         </Button>
-        {!omitFavoritesLink ? (
-          <Button variant="outline" size="sm" className={barBtn} asChild>
-            <Link href="/explore?tab=favorites">Избранное</Link>
-          </Button>
-        ) : null}
       </div>
     );
   }

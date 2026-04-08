@@ -10,6 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { calculateAge } from "@/lib/utils";
 import { ProducerCastingCardActions } from "@/components/producer-casting-card-actions";
 import { ProducerCastingSpecGrid } from "@/components/producer-casting-spec-grid";
+import { formatShootDateParts } from "@/lib/casting-display";
+import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
+import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 
 function formatDt(d: Date | null | undefined) {
   if (!d) return "—";
@@ -45,10 +48,14 @@ export default async function ProducerCastingDetailPage({ params }: { params: Pr
 
   const loc =
     [casting.metroStation, casting.addressLine].filter(Boolean).join(" · ") || casting.metroOrPlace || "—";
-  const pay =
-    casting.paymentRub != null
-      ? `${casting.paymentRub.toLocaleString("ru-RU")} ₽${casting.paymentInfo ? ` · ${casting.paymentInfo}` : ""}`
-      : casting.paymentInfo || "—";
+  const pay = formatCastingPaymentLine(casting.paymentRub, casting.paymentInfo, casting.paymentPeriod) || "—";
+  const shootDates = parseShootDatesYmdFromJson(casting.shootDatesJson);
+  const { dateLine, timeLine } = formatShootDateParts(
+    casting.scheduledAt?.toISOString() ?? null,
+    casting.shootStartTime,
+    shootDates,
+  );
+  const shootSummary = [dateLine, timeLine].filter(Boolean).join(", ") || formatDt(casting.scheduledAt);
 
   return (
     <div className="space-y-5 pb-8 sm:space-y-6">
@@ -78,25 +85,23 @@ export default async function ProducerCastingDetailPage({ params }: { params: Pr
         <CardContent className="space-y-4 p-3 sm:p-4">
           <ProducerCastingSpecGrid
             rows={[
-              { label: "Съёмка", value: formatDt(casting.scheduledAt) },
-              { label: "Старт / смена", value: [casting.shootStartTime, casting.workHoursNote].filter(Boolean).join(" · ") || "—" },
+              { label: "Съёмка", value: shootSummary },
+              {
+                label: "Рабочие часы",
+                value: casting.workHoursNote?.trim() || "—",
+              },
               { label: "Локация", value: loc, span: "full" },
               { label: "Оплата", value: pay, span: "full" },
               {
-                label: "Отклики",
-                value: (
-                  <>
-                    Дедлайн: {formatDt(casting.applicationDeadline)}
-                    {casting.slotsNeeded != null ? ` · слотов: ${casting.slotsNeeded}` : ""}
-                  </>
-                ),
+                label: "Приём откликов до",
+                value: formatDt(casting.applicationDeadline),
                 span: "full",
               },
             ]}
           />
           <div className="border-t border-border/60 pt-3">
             <h2 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Описание
+              Нам требуется
             </h2>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{casting.description}</p>
           </div>

@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="flex min-h-screen flex-col font-sans">
         <Providers session={session}>
           <SiteHeader />
-          <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 py-5 sm:px-4 sm:py-6 md:py-8">
+          <main className="mx-auto flex w-full min-h-0 min-w-0 max-w-6xl flex-1 flex-col px-3 py-5 sm:px-4 sm:py-6 md:py-8">
             {children}
           </main>
           <SiteFooter />
