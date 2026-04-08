@@ -249,7 +249,7 @@ export function ProducerEditMediaUploads({
             <input
               ref={avatarInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
               className="sr-only"
               onChange={(e) => {
                 const input = e.target;
@@ -300,7 +300,7 @@ export function ProducerEditMediaUploads({
           <input
             ref={portfolioInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
             multiple
             className="sr-only"
             disabled={photosUploading}

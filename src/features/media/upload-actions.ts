@@ -7,17 +7,14 @@ import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
 import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
 import { runActorPortfolioPhotosUpload } from "@/server/media/actor-portfolio-photos-upload";
+import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 120 * 1024 * 1024;
 
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
 function extFromMime(mime: string): string {
-  if (mime === "image/jpeg") return "jpg";
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
   if (mime === "video/mp4") return "mp4";
   if (mime === "video/webm") return "webm";
   if (mime === "video/quicktime") return "mov";
@@ -43,12 +40,14 @@ export async function uploadActorAvatarFormAction(formData: FormData): Promise<U
 
   const file = formData.get("avatar");
   if (!file || typeof file === "string" || file.size === 0) return { error: "Выберите файл" };
-  if (!IMAGE_TYPES.has(file.type)) return { error: "Допустимы JPEG, PNG, WebP" };
   if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 5 МБ" };
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = extFromMime(file.type);
+    const prepared = await prepareUploadedProfileImage(file);
+    if (!prepared) {
+      return { error: "Не удалось обработать фото. Допустимы JPEG, PNG, WebP, HEIC/HEIF, AVIF" };
+    }
+    const { buffer, mime: outMime, ext } = prepared;
     const rel = `actor/${profile.id}/${randomUUID()}.${ext}`;
     const publicUrl = await savePublicUpload(rel, buffer);
 
@@ -77,7 +76,7 @@ export async function uploadActorAvatarFormAction(formData: FormData): Promise<U
           kind: MediaKind.PHOTO,
           storageKey: rel,
           publicUrl,
-          mimeType: file.type,
+          mimeType: outMime,
           actorProfileId: profile.id,
           sortOrder: 0,
           isAvatar: true,
@@ -166,12 +165,14 @@ export async function uploadProducerAvatarFormAction(formData: FormData): Promis
 
   const file = formData.get("avatar");
   if (!file || typeof file === "string" || file.size === 0) return { error: "Выберите файл" };
-  if (!IMAGE_TYPES.has(file.type)) return { error: "Допустимы JPEG, PNG, WebP" };
   if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 5 МБ" };
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = extFromMime(file.type);
+    const prepared = await prepareUploadedProfileImage(file);
+    if (!prepared) {
+      return { error: "Не удалось обработать фото. Допустимы JPEG, PNG, WebP, HEIC/HEIF, AVIF" };
+    }
+    const { buffer, mime: outMime, ext } = prepared;
     const rel = `producer/${profile.id}/${randomUUID()}.${ext}`;
     const publicUrl = await savePublicUpload(rel, buffer);
 
@@ -200,7 +201,7 @@ export async function uploadProducerAvatarFormAction(formData: FormData): Promis
           kind: MediaKind.PHOTO,
           storageKey: rel,
           publicUrl,
-          mimeType: file.type,
+          mimeType: outMime,
           producerProfileId: profile.id,
           sortOrder: 0,
           isAvatar: true,

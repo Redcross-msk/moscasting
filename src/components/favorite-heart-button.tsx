@@ -6,13 +6,36 @@ import { toggleFavoriteActorAction, toggleFavoriteCastingAction } from "@/featur
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function HeartIcon({
+  on,
+  className,
+}: {
+  on: boolean;
+  className?: string;
+}) {
+  return (
+    <Heart
+      className={cn(
+        "h-5 w-5 shrink-0 text-current transition-all duration-150 ease-out",
+        /* Заливка при нажатии только внутри контура сердца (fill-opacity), не прямоугольник кнопки */
+        on
+          ? "fill-current group-active:scale-[0.88]"
+          : "fill-current fill-opacity-0 group-active:fill-opacity-[0.48] group-active:scale-[0.9]",
+        className,
+      )}
+      fill="currentColor"
+      strokeWidth={1.75}
+    />
+  );
+}
+
 export function FavoriteHeartButton({
   kind,
   targetId,
   initial,
   className,
   label = "В избранное",
-  /** Карточка кастинга в каталоге: моб. — квадрат с сердцем у «Откликнуться»; десктоп — текст под кнопкой. */
+  /** Карточка кастинга в каталоге: моб. — только сердце; десктоп — текст в кнопке. */
   presentation = "default",
 }: {
   kind: "casting" | "actor";
@@ -40,27 +63,32 @@ export function FavoriteHeartButton({
     return (
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         disabled={pending}
         className={cn(
-          "shrink-0 rounded-xl shadow-sm",
-          "h-11 w-11 p-0 md:h-11 md:w-full md:px-3",
+          "group shrink-0 [-webkit-tap-highlight-color:transparent] touch-manipulation",
+          /* Мобилка: без заливки подложки — только кольцо фокуса и сердце */
+          "h-11 w-11 min-h-11 min-w-11 rounded-full border-0 bg-transparent p-0 shadow-none",
+          "hover:bg-transparent active:bg-transparent",
+          "focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          /* md+: прежняя широкая кнопка с фоном */
+          "md:flex md:h-11 md:w-full md:min-w-0 md:rounded-xl md:border md:px-3 md:py-0 md:shadow-sm",
+          "md:focus-visible:ring-offset-background",
           on
-            ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-            : "border-primary/30 bg-background text-primary hover:bg-primary/5",
+            ? "text-primary md:border-primary md:bg-primary md:text-primary-foreground md:hover:bg-primary/90 md:hover:text-primary-foreground md:active:bg-primary/80"
+            : "text-primary md:border-primary/30 md:bg-background md:hover:bg-primary/5 md:hover:text-primary md:active:bg-primary/10",
           className,
         )}
         aria-label={on ? "Убрать из избранного" : "Добавить в избранное"}
         aria-pressed={on}
         onClick={onClick}
       >
-        <Heart
+        <HeartIcon
+          on={on}
           className={cn(
-            "mx-auto h-5 w-5 transition-colors md:hidden",
-            on ? "fill-primary-foreground text-primary-foreground" : "text-primary",
+            "mx-auto md:hidden",
+            on ? "text-primary md:text-primary-foreground" : "text-primary",
           )}
-          fill={on ? "currentColor" : "none"}
-          strokeWidth={1.75}
         />
         <span
           className={cn(
@@ -81,19 +109,17 @@ export function FavoriteHeartButton({
       size="icon"
       disabled={pending}
       className={cn(
-        "h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary",
-        on && "text-primary",
+        "group h-9 w-9 shrink-0 rounded-full [-webkit-tap-highlight-color:transparent] touch-manipulation",
+        "border-0 bg-transparent hover:bg-transparent active:bg-transparent",
+        "focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        on ? "text-primary" : "text-muted-foreground",
         className,
       )}
       aria-label={label}
       aria-pressed={on}
       onClick={onClick}
     >
-      <Heart
-        className={cn("h-5 w-5 transition-colors", on ? "fill-primary text-primary" : "text-muted-foreground")}
-        fill={on ? "currentColor" : "none"}
-        strokeWidth={1.75}
-      />
+      <HeartIcon on={on} />
     </Button>
   );
 }

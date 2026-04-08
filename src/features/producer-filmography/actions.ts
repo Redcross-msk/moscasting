@@ -6,16 +6,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isProducerFilmographyEntryAvailable, PRISMA_CLIENT_OUTDATED_HINT } from "@/lib/prisma-runtime";
 import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
+import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
 
 const POSTER_MAX_BYTES = 12 * 1024 * 1024;
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-function extFromMime(mime: string): string {
-  if (mime === "image/jpeg") return "jpg";
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "bin";
-}
 
 async function requireProducerProfileId() {
   const session = await auth();
@@ -41,12 +34,13 @@ export async function addFilmographyEntryAction(formData: FormData) {
   let posterPublicUrl: string | null = null;
   const posterFile = formData.get("poster");
   if (posterFile && typeof posterFile !== "string" && posterFile.size > 0) {
-    if (!IMAGE_TYPES.has(posterFile.type)) throw new Error("Постер: допустимы JPEG, PNG, WebP");
     if (posterFile.size > POSTER_MAX_BYTES) throw new Error("Постер до 12 МБ");
-    const buffer = Buffer.from(await posterFile.arrayBuffer());
-    const ext = extFromMime(posterFile.type);
-    const rel = `producer/${producerProfileId}/filmography/${randomUUID()}.${ext}`;
-    posterPublicUrl = await savePublicUpload(rel, buffer);
+    const prepared = await prepareUploadedProfileImage(posterFile);
+    if (!prepared) {
+      throw new Error("Постер: не удалось обработать файл (JPEG, PNG, WebP, HEIC/HEIF, AVIF)");
+    }
+    const rel = `producer/${producerProfileId}/filmography/${randomUUID()}.${prepared.ext}`;
+    posterPublicUrl = await savePublicUpload(rel, prepared.buffer);
   }
 
   const maxOrder = await prisma.producerFilmographyEntry.aggregate({

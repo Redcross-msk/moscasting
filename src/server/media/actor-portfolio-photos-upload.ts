@@ -2,11 +2,19 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
+import { effectiveImageMime, sniffImageMimeFromBuffer } from "@/server/media/effective-upload-mime";
 import { normalizePortfolioImageBuffer } from "@/server/media/portfolio-image-normalize";
 import { savePublicUpload } from "@/server/uploads/save-public-upload";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+const IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/avif",
+]);
 
 export type PortfolioPhotoAdded = {
   id: string;
@@ -18,18 +26,6 @@ export type PortfolioPhotoAdded = {
 export type PortfolioPhotosUploadOutcome =
   | { error: string; added?: undefined }
   | { error?: undefined; added: PortfolioPhotoAdded[] };
-
-/** Браузеры на Windows иногда отдают пустой file.type — определяем по имени. */
-function effectiveMime(file: File): string {
-  if (file.type && file.type !== "application/octet-stream") return file.type;
-  const n = file.name.toLowerCase();
-  if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
-  if (n.endsWith(".png")) return "image/png";
-  if (n.endsWith(".webp")) return "image/webp";
-  if (n.endsWith(".heic")) return "image/heic";
-  if (n.endsWith(".heif")) return "image/heif";
-  return file.type || "";
-}
 
 export async function runActorPortfolioPhotosUpload(
   actorProfileId: string,
@@ -56,10 +52,15 @@ export async function runActorPortfolioPhotosUpload(
   try {
     for (const file of valid) {
       if (added >= maxAdd) break;
-      const mimeIn = effectiveMime(file);
-      if (!IMAGE_TYPES.has(mimeIn)) continue;
       if (file.size > MAX_PHOTO_BYTES) continue;
       const raw = Buffer.from(await file.arrayBuffer());
+      let mimeIn = effectiveImageMime(file).toLowerCase();
+      if (mimeIn === "image/jpg") mimeIn = "image/jpeg";
+      if (!IMAGE_TYPES.has(mimeIn)) {
+        const sniffed = sniffImageMimeFromBuffer(raw);
+        if (sniffed && IMAGE_TYPES.has(sniffed)) mimeIn = sniffed;
+      }
+      if (!IMAGE_TYPES.has(mimeIn)) continue;
       const normalized = await normalizePortfolioImageBuffer(raw, mimeIn);
       if (!normalized) continue;
       const { buffer, mime: outMime, ext } = normalized;
