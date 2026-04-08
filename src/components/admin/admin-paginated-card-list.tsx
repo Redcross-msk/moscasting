@@ -37,7 +37,10 @@ export function AdminPaginatedCardList({
   pageSizeDesktop = DEFAULT_PAGE_DESKTOP,
 }: AdminPaginatedCardListProps) {
   const items = useMemo(
-    () => Children.toArray(children).filter((c) => c != null && c !== false),
+    () =>
+      Children.toArray(children).filter(
+        (c) => c != null && typeof c !== "boolean",
+      ),
     [children],
   );
   const pageSize = useAdminResponsivePageSize(pageSizeMobile, pageSizeDesktop);
