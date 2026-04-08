@@ -16,6 +16,20 @@ export function parseCastingPaymentPeriod(raw: string): CastingPaymentPeriod | n
   return isCastingPaymentPeriod(t) ? t : null;
 }
 
+/** Первая сумма в начале строки (учёт пробелов и неразрывного пробела), иначе null. */
+function leadingAmountInPaymentInfo(info: string): number | null {
+  const m = info.trim().match(/^([\d\s\u00A0]+)/);
+  if (!m) return null;
+  const n = parseInt(m[1].replace(/[\s\u00A0]/g, ""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** paymentInfo уже содержит ту же сумму, что paymentRub — не дублируем «2 000 ₽ · …». */
+function paymentInfoDuplicatesRub(info: string, rub: number): boolean {
+  const n = leadingAmountInPaymentInfo(info);
+  return n !== null && n === rub;
+}
+
 /** Строка оплаты для карточек и чатов: сумма + рублей + период. */
 export function formatCastingPaymentLine(
   paymentRub: number | null | undefined,
@@ -27,7 +41,10 @@ export function formatCastingPaymentLine(
   }
   if (paymentRub != null && Number.isFinite(paymentRub)) {
     const extra = paymentInfo?.trim();
-    if (extra) return `${paymentRub.toLocaleString("ru-RU")} ₽ · ${extra}`;
+    if (extra) {
+      if (paymentInfoDuplicatesRub(extra, paymentRub)) return extra;
+      return `${paymentRub.toLocaleString("ru-RU")} ₽ · ${extra}`;
+    }
     return `${paymentRub.toLocaleString("ru-RU")} ₽`;
   }
   if (paymentInfo?.trim()) return paymentInfo.trim();

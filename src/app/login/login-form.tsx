@@ -56,8 +56,8 @@ export function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <Card>
+    <div className="mx-auto w-full max-w-lg md:max-w-xl">
+      <Card className="w-full shadow-md">
         <CardHeader>
           <CardTitle>Вход</CardTitle>
           <CardDescription>

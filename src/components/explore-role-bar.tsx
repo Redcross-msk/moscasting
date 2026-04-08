@@ -12,9 +12,9 @@ type ExploreRoleBarProps = {
   favoritesLinkActive?: boolean;
 };
 
-/** Узкие экраны: перенос строк, без w-max (иначе обрезание слева); широкие — одна строка справа. */
+/** Одна строка кнопок; на узком экране при нехватке места — горизонтальная прокрутка. */
 const roleNavClusterClass =
-  "flex min-w-0 w-full max-w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-2 lg:ml-auto lg:w-max lg:flex-nowrap lg:justify-end lg:gap-2";
+  "flex min-w-0 w-full max-w-full flex-nowrap items-center justify-start gap-x-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-auto lg:w-max lg:justify-end lg:gap-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden";
 
 export function ExploreRoleBar({ role, className, favoritesLinkActive }: ExploreRoleBarProps) {
   const barBtn =
