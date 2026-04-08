@@ -1,0 +1,5 @@
+# TLS (Let's Encrypt), пока A/AAAA домена указывают на этот сервер.
+# Добавьте блок для www и редирект, когда в DNS появится запись для www.
+moscasting.ru {
+	reverse_proxy app:3000
+}
