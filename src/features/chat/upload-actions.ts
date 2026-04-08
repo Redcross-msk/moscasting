@@ -88,7 +88,7 @@ export async function uploadAndSendChatFileAction(chatId: string, formData: Form
   if (CHAT_NORMALIZABLE_IMAGE.has(mime)) {
     const normalized = await normalizePortfolioImageBuffer(buffer, mime);
     if (!normalized) return { error: "Не удалось обработать фото. Попробуйте другое изображение." };
-    buffer = normalized.buffer;
+    buffer = Buffer.from(normalized.buffer);
     outMime = normalized.mime;
     ext = normalized.ext;
     attachmentKind = "image";
