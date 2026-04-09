@@ -22,8 +22,10 @@ export async function prepareUploadedProfileImage(
   if (mime === "image/jpg") mime = "image/jpeg";
   if (!INPUT_TYPES.has(mime)) {
     const sniffed = sniffImageMimeFromBuffer(raw);
-    if (sniffed) mime = sniffed;
+    if (sniffed && INPUT_TYPES.has(sniffed)) mime = sniffed;
   }
-  if (!INPUT_TYPES.has(mime)) return null;
-  return normalizePortfolioImageBuffer(raw, mime);
+  const allowDecodeAttempt =
+    INPUT_TYPES.has(mime) || mime === "application/octet-stream" || !mime.trim();
+  if (!allowDecodeAttempt) return null;
+  return normalizePortfolioImageBuffer(raw, mime || "application/octet-stream");
 }

@@ -12,6 +12,7 @@ import { effectiveVideoMime } from "@/server/media/effective-upload-mime";
 
 const MAX_AVATAR_BYTES = 30 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 120 * 1024 * 1024;
+const MIN_VIDEO_BYTES = 512;
 
 const VIDEO_TYPES = new Set([
   "video/mp4",
@@ -139,6 +140,9 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+    if (buffer.length < MIN_VIDEO_BYTES) {
+      return { error: "Видеофайл пустой или повреждён — попробуйте записать или выбрать снова" };
+    }
     const ext = extFromMime(videoMime);
     const rel = `actor/${profile.id}/${randomUUID()}.${ext}`;
     const publicUrl = await savePublicUpload(rel, buffer);

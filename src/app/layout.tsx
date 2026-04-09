@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { auth } from "@/auth";
 import { Providers } from "@/app/providers";
@@ -14,6 +14,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "МОСКАСТИНГ — кастинги в Москве",
   description: "Платформа кастингов для кино, рекламы и ТВ",
+};
+
+/** Клавиатура на Android Chrome пересчитывает layout; меньше артефактов с пустотой под полем ввода. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

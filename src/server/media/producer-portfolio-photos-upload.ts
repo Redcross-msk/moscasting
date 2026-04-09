@@ -67,8 +67,10 @@ export async function runProducerPortfolioPhotosUpload(
         const sniffed = sniffImageMimeFromBuffer(raw);
         if (sniffed && IMAGE_TYPES.has(sniffed)) mimeIn = sniffed;
       }
-      if (!IMAGE_TYPES.has(mimeIn)) continue;
-      const normalized = await normalizePortfolioImageBuffer(raw, mimeIn);
+      const mayDecode =
+        IMAGE_TYPES.has(mimeIn) || mimeIn === "application/octet-stream" || !mimeIn.trim();
+      if (!mayDecode) continue;
+      const normalized = await normalizePortfolioImageBuffer(raw, mimeIn || "application/octet-stream");
       if (!normalized) continue;
       const { buffer, mime: outMime, ext } = normalized;
       const rel = `producer/${producerProfileId}/${randomUUID()}.${ext}`;
