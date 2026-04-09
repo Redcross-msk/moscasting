@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
+import { MAX_ACTOR_PORTFOLIO_VIDEOS } from "@/lib/actor-portfolio-limits";
 import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
 import { runActorPortfolioPhotosUpload } from "@/server/media/actor-portfolio-photos-upload";
 import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
@@ -135,8 +136,12 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
   if (!videoMime) return { error: "Допустимы MP4, WebM, MOV (с телефона тип иногда пустой — расширение .mp4/.mov/.webm)" };
   if (file.size > MAX_VIDEO_BYTES) return { error: "Видео до 120 МБ" };
 
-  const count = await prisma.mediaFile.count({ where: { actorProfileId: profile.id } });
-  if (count >= 10) return { error: "Уже максимум 10 файлов в портфолио" };
+  const videoCount = await prisma.mediaFile.count({
+    where: { actorProfileId: profile.id, kind: MediaKind.VIDEO },
+  });
+  if (videoCount >= MAX_ACTOR_PORTFOLIO_VIDEOS) {
+    return { error: `Не больше ${MAX_ACTOR_PORTFOLIO_VIDEOS} видеовизиток` };
+  }
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());

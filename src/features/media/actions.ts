@@ -173,6 +173,43 @@ export async function deleteActorPortfolioPhotoAction(
   }
 }
 
+/** Удаление видеовизитки (VIDEO) актёра. */
+export async function deleteActorPortfolioVideoAction(
+  formData: FormData,
+): Promise<ActorMediaMutationResult> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ACTOR") {
+    return { ok: false, error: "Нет доступа" };
+  }
+
+  const mediaId = String(formData.get("mediaId") ?? "").trim();
+  if (!mediaId) return { ok: false, error: "Нет файла" };
+
+  const profile = await prisma.actorProfile.findUnique({ where: { userId: session.user.id } });
+  if (!profile) return { ok: false, error: "Нет профиля" };
+
+  const media = await prisma.mediaFile.findFirst({
+    where: {
+      id: mediaId,
+      actorProfileId: profile.id,
+      kind: MediaKind.VIDEO,
+    },
+  });
+  if (!media) return { ok: false, error: "Видео не найдено" };
+
+  try {
+    await deletePublicUploadFile(media.storageKey);
+    await prisma.mediaFile.delete({ where: { id: mediaId } });
+    revalidatePath("/actor/profile");
+    revalidatePath("/actor/profile/edit");
+    revalidatePath(`/actors/${profile.id}`);
+    revalidatePath("/explore");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Не удалось удалить видео" };
+  }
+}
+
 export type ProducerMediaMutationResult = { ok: true } | { ok: false; error: string };
 
 /** Удаление фото портфолио продюсера (не аватар). Без throw — иначе полная страница ошибки Next.js. */

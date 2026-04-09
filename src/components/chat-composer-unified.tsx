@@ -149,7 +149,7 @@ export function ChatComposerUnified({
           placeholder={file ? "Подпись к файлу (необязательно)" : "Сообщение…"}
           rows={1}
           disabled={pending}
-          className="max-h-28 min-h-[2.25rem] flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm shadow-none focus-visible:ring-0"
+          className="max-h-28 min-h-[2.25rem] flex-1 resize-none border-0 bg-transparent px-1 py-2 text-base shadow-none focus-visible:ring-0 sm:text-sm"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

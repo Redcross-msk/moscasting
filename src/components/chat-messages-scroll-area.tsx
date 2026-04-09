@@ -4,8 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Прокрутка к последнему сообщению при открытии треда и после скрытия клавиатуры
- * (visualViewport растёт — иначе на iOS/Android остаётся «пустота» внизу списка).
+ * Прокрутка к последнему сообщению при открытии треда и после скрытия клавиатуры.
+ * Внутри — колонка с justify-end и min-h-full, чтобы под последним сообщением не было
+ * пустой области с лишней прокруткой вниз.
  */
 export function ChatMessagesScrollArea({
   children,
@@ -52,7 +53,9 @@ export function ChatMessagesScrollArea({
 
   return (
     <div ref={ref} className={cn(className)}>
-      {children}
+      <div className="flex min-h-full min-w-0 flex-col justify-end">
+        <div className="flex min-w-0 flex-col space-y-2">{children}</div>
+      </div>
     </div>
   );
 }

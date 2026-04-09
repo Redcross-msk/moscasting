@@ -5,6 +5,7 @@ import { MediaKind, ModerationStatus } from "@prisma/client";
 import { effectiveImageMime, sniffImageMimeFromBuffer } from "@/server/media/effective-upload-mime";
 import { normalizePortfolioImageBuffer } from "@/server/media/portfolio-image-normalize";
 import { savePublicUpload } from "@/server/uploads/save-public-upload";
+import { MAX_ACTOR_PORTFOLIO_PHOTOS } from "@/lib/actor-portfolio-limits";
 
 const MAX_PHOTO_BYTES = 35 * 1024 * 1024;
 const IMAGE_TYPES = new Set([
@@ -41,9 +42,13 @@ export async function runActorPortfolioPhotosUpload(
     };
   }
 
-  const count = await prisma.mediaFile.count({ where: { actorProfileId } });
-  const maxAdd = Math.max(0, 10 - count);
-  if (maxAdd <= 0) return { error: "Уже максимум 10 файлов в портфолио" };
+  const count = await prisma.mediaFile.count({
+    where: { actorProfileId, kind: MediaKind.PHOTO, isAvatar: false },
+  });
+  const maxAdd = Math.max(0, MAX_ACTOR_PORTFOLIO_PHOTOS - count);
+  if (maxAdd <= 0) {
+    return { error: `Уже максимум ${MAX_ACTOR_PORTFOLIO_PHOTOS} фото в портфолио` };
+  }
 
   let sortBase =
     (

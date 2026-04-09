@@ -47,7 +47,7 @@ export default async function ProducerChatPage({ params }: { params: Promise<{ c
 
       <ChatMessagesScrollArea
         scrollKey={`${chatId}-${chat.messages.length}`}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3"
       >
         {chat.messages.map((m) => {
           const isMine = m.senderId === session!.user.id;

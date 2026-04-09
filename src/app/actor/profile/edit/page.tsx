@@ -41,6 +41,7 @@ export default async function ActorProfileEditPage() {
     }));
   const portfolioVideos = profile.media
     .filter((m) => m.kind === MediaKind.VIDEO)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((m) => ({ id: m.id, publicUrl: m.publicUrl, storageKey: m.storageKey }));
 
   return (
