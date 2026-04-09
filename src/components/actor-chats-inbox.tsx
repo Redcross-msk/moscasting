@@ -174,7 +174,7 @@ export function ActorChatsInbox({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col",
+        "flex h-full min-h-0 flex-1 flex-col",
         !panel && "space-y-4",
         panel && "min-h-0 overflow-hidden",
       )}
@@ -197,17 +197,17 @@ export function ActorChatsInbox({
         className={cn(
           "min-h-0 gap-0 md:grid md:grid-cols-12 md:items-stretch md:gap-4",
           panel
-            ? "flex flex-1 min-h-0 flex-col overflow-hidden md:min-h-[min(560px,calc(100dvh-10rem))] md:max-h-[calc(100dvh-10rem)]"
-            : "md:min-h-[480px]",
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+            : "min-h-0 flex-1 md:min-h-0",
         )}
       >
         <aside
           className={cn(
-            "border-b border-border pb-4 md:col-span-4 md:flex md:min-h-0 md:flex-col md:border-b-0 md:border-r md:pb-0 md:pr-4",
+            "flex min-h-0 flex-col border-b border-border pb-4 md:col-span-4 md:border-b-0 md:border-r md:pb-0 md:pr-4",
             panel ? "hidden md:flex" : "flex",
           )}
         >
-          <div className="flex w-full flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+          <div className="flex min-h-0 max-h-full w-full flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-3 shadow-sm">
             {!hasAnyChat ? (
               <p className="text-sm text-muted-foreground">Пока нет чатов</p>
             ) : (
@@ -332,7 +332,7 @@ export function ActorChatsInbox({
                 <h2 className="text-lg font-bold leading-tight">{panel.title}</h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">{panel.subtitle}</p>
               </div>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border/80 bg-muted/20 p-2 sm:p-3">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border/80 bg-muted/20 p-2 touch-pan-y sm:p-3">
                 {panel.messages.map((m) => (
                   <ChatThreadMessageBubble
                     key={m.id}

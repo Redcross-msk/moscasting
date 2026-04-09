@@ -12,7 +12,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
-import { canUseBlobImagePreview } from "@/lib/client-image-preview";
+import { shouldUseObjectUrlForLocalImagePreview } from "@/lib/client-image-preview";
 
 type PortfolioPhotoItem = {
   id: string;
@@ -131,28 +131,35 @@ export function ProducerEditMediaUploads({
         ? crypto.randomUUID()
         : `batch-${Date.now()}`;
 
-    const staged: StagedPortfolioPhoto[] = files.map((file) => ({
-      id:
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      batchId,
-      blobPreviewUrl: canUseBlobImagePreview(file) ? URL.createObjectURL(file) : null,
-      uploading: true,
-    }));
-
-    setStagedPortfolio((prev) => [...prev, ...staged]);
-    setPhotosUploading(true);
-
-    const batchIds = new Set(staged.map((s) => s.id));
-    const fd = new FormData();
-    files.forEach((f) => fd.append("photos", f));
-
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const ac = new AbortController();
-    uploadAbortRef.current = ac;
+    const batchIdLocal = batchId;
+    const filesLocal = files;
 
     void (async () => {
+      const staged: StagedPortfolioPhoto[] = await Promise.all(
+        filesLocal.map(async (file) => ({
+          id:
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          batchId: batchIdLocal,
+          blobPreviewUrl: (await shouldUseObjectUrlForLocalImagePreview(file))
+            ? URL.createObjectURL(file)
+            : null,
+          uploading: true,
+        })),
+      );
+
+      setStagedPortfolio((prev) => [...prev, ...staged]);
+      setPhotosUploading(true);
+
+      const batchIds = new Set(staged.map((s) => s.id));
+      const fd = new FormData();
+      filesLocal.forEach((f) => fd.append("photos", f));
+
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const ac = new AbortController();
+      uploadAbortRef.current = ac;
+
       try {
         const r = await fetch(`${origin}/api/producer/portfolio-photos`, {
           method: "POST",
@@ -274,28 +281,30 @@ export function ProducerEditMediaUploads({
                 input.value = "";
                 if (!file) return;
                 setAvatarErr(null);
-                let blobUrl: string | null = null;
-                if (canUseBlobImagePreview(file)) {
-                  blobUrl = URL.createObjectURL(file);
-                  setAvatarBlobUrl(blobUrl);
-                } else {
-                  setAvatarBlobUrl(null);
-                }
-                const fd = new FormData();
-                fd.append("avatar", file);
-                startAvatarTransition(async () => {
-                  const res = await uploadProducerAvatarFormAction(fd);
-                  if (res.error) {
-                    setAvatarErr(res.error);
+                void (async () => {
+                  let blobUrl: string | null = null;
+                  if (await shouldUseObjectUrlForLocalImagePreview(file)) {
+                    blobUrl = URL.createObjectURL(file);
+                    setAvatarBlobUrl(blobUrl);
+                  } else {
+                    setAvatarBlobUrl(null);
+                  }
+                  const fd = new FormData();
+                  fd.append("avatar", file);
+                  startAvatarTransition(async () => {
+                    const res = await uploadProducerAvatarFormAction(fd);
+                    if (res.error) {
+                      setAvatarErr(res.error);
+                      if (blobUrl) URL.revokeObjectURL(blobUrl);
+                      setAvatarBlobUrl(null);
+                      return;
+                    }
                     if (blobUrl) URL.revokeObjectURL(blobUrl);
                     setAvatarBlobUrl(null);
-                    return;
-                  }
-                  if (blobUrl) URL.revokeObjectURL(blobUrl);
-                  setAvatarBlobUrl(null);
-                  if (res.publicUrl) setAvatarUrlAfterUpload(res.publicUrl);
-                  setAvatarStorageKeyAfterUpload(res.storageKey ?? null);
-                });
+                    if (res.publicUrl) setAvatarUrlAfterUpload(res.publicUrl);
+                    setAvatarStorageKeyAfterUpload(res.storageKey ?? null);
+                  });
+                })();
               }}
             />
             <Button

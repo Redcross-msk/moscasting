@@ -22,7 +22,7 @@ export default async function ProducerChatPage({ params }: { params: Promise<{ c
     app.actorProfile.userId === session!.user.id ? app.producerProfile.userId : app.actorProfile.userId;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-0 sm:pb-2">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-0 sm:pb-2">
       <div className="shrink-0">
         <h1 className="text-xl font-bold">{app.casting.title}</h1>
         <p className="text-sm text-muted-foreground">
@@ -44,7 +44,7 @@ export default async function ProducerChatPage({ params }: { params: Promise<{ c
         role="PRODUCER"
       />
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 shadow-sm sm:p-3">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3">
         {chat.messages.map((m) => {
           const isMine = m.senderId === session!.user.id;
           const receipt = applicationChatMessageReceipt({
