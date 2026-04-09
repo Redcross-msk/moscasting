@@ -24,8 +24,9 @@ export default async function ProducerProfileEditPage() {
   if (!profile) return <p>Профиль не найден</p>;
 
   const avatarMedia =
-    profile.media.find((m) => m.kind === MediaKind.PHOTO && m.isAvatar && m.publicUrl) ??
-    profile.media.find((m) => m.kind === MediaKind.PHOTO && m.publicUrl);
+    profile.media.find(
+      (m) => m.kind === MediaKind.PHOTO && m.isAvatar && (m.publicUrl?.trim() || m.storageKey?.trim()),
+    ) ?? profile.media.find((m) => m.kind === MediaKind.PHOTO && (m.publicUrl?.trim() || m.storageKey?.trim()));
 
   const portfolioPhotos = profile.media
     .filter((m) => m.kind === MediaKind.PHOTO && !m.isAvatar)
@@ -47,6 +48,7 @@ export default async function ProducerProfileEditPage() {
         <CardContent className="space-y-12 pt-8">
           <ProducerEditMediaUploads
             initialAvatarUrl={avatarMedia?.publicUrl ?? null}
+            initialAvatarStorageKey={avatarMedia?.storageKey ?? null}
             portfolioPhotos={portfolioPhotos}
           />
 

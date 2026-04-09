@@ -57,9 +57,11 @@ function mergePortfolioPhotos(server: PortfolioPhotoItem[], extra: PortfolioPhot
 
 export function ProducerEditMediaUploads({
   initialAvatarUrl,
+  initialAvatarStorageKey,
   portfolioPhotos: portfolioPhotosFromServer,
 }: {
   initialAvatarUrl: string | null;
+  initialAvatarStorageKey?: string | null;
   portfolioPhotos: PortfolioPhotoItem[];
 }) {
   const router = useRouter();
@@ -85,16 +87,13 @@ export function ProducerEditMediaUploads({
   useEffect(() => {
     setAvatarUrlAfterUpload(null);
     setAvatarStorageKeyAfterUpload(null);
-  }, [initialAvatarUrl]);
+  }, [initialAvatarUrl, initialAvatarStorageKey]);
 
   const avatarDisplayRaw =
     avatarBlobUrl ?? avatarUrlAfterUpload ?? initialAvatarUrl;
   const avatarDisplay =
     avatarBlobUrl ??
-    resolveUploadedMediaSrc(
-      avatarUrlAfterUpload ?? initialAvatarUrl,
-      avatarStorageKeyAfterUpload,
-    );
+    resolveUploadedMediaSrc(avatarUrlAfterUpload ?? initialAvatarUrl, avatarStorageKeyAfterUpload ?? initialAvatarStorageKey ?? null);
 
   useEffect(() => {
     const serverIds = new Set(portfolioPhotosFromServer.map((p) => p.id));

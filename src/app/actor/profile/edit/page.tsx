@@ -25,8 +25,9 @@ export default async function ActorProfileEditPage() {
 
   const birthStr = profile.birthDate.toISOString().slice(0, 10);
   const avatarMedia =
-    profile.media.find((m) => m.kind === MediaKind.PHOTO && m.isAvatar && m.publicUrl) ??
-    profile.media.find((m) => m.kind === MediaKind.PHOTO && m.publicUrl);
+    profile.media.find(
+      (m) => m.kind === MediaKind.PHOTO && m.isAvatar && (m.publicUrl?.trim() || m.storageKey?.trim()),
+    ) ?? profile.media.find((m) => m.kind === MediaKind.PHOTO && (m.publicUrl?.trim() || m.storageKey?.trim()));
 
   /** Только портфолио без текущего аватара — сетка превью не дублирует круг. */
   const portfolioPhotos = profile.media
@@ -53,6 +54,7 @@ export default async function ActorProfileEditPage() {
         <CardContent className="space-y-12 pt-8">
           <ActorEditMediaUploads
             initialAvatarUrl={avatarMedia?.publicUrl ?? null}
+            initialAvatarStorageKey={avatarMedia?.storageKey ?? null}
             portfolioPhotos={portfolioPhotos}
           />
 

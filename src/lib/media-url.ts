@@ -1,6 +1,8 @@
 /**
- * Ссылки на файлы из `public/uploads`: в БД хранятся `publicUrl` (`/uploads/…`) и `storageKey`.
- * Старые записи могли получить фейковый URL из заглушки S3 (`storage.local`, `/placeholder/`).
+ * Ссылки на файлы из `public/uploads`: в БД хранятся `publicUrl` и `storageKey`.
+ * Реальный путь к файлу на диске задаёт `storageKey`; `publicUrl` бывает неверным
+ * (другой хост, заглушка S3, устаревшее значение) — тогда <img> даёт «битую» картинку.
+ * Поэтому при наличии ключа всегда строим URL из него.
  */
 export function resolveUploadedMediaSrc(
   publicUrl: string | null | undefined,
@@ -9,8 +11,10 @@ export function resolveUploadedMediaSrc(
   const key = storageKey?.trim().replace(/^\/+/, "").replace(/\\/g, "/");
   const fromKey = key ? `/uploads/${key}` : null;
 
+  if (fromKey) return fromKey;
+
   const u = publicUrl?.trim() ?? "";
-  if (!u) return fromKey;
+  if (!u) return null;
 
   if (u.startsWith("/uploads/")) return u;
 
@@ -18,20 +22,24 @@ export function resolveUploadedMediaSrc(
     try {
       const parsed = new URL(u);
       const host = parsed.hostname.toLowerCase();
-      const path = `${parsed.pathname}${parsed.search}`.toLowerCase();
+      const pathLower = `${parsed.pathname}${parsed.search}`.toLowerCase();
       if (
         host === "storage.local" ||
         host === "localhost" ||
-        path.includes("/placeholder") ||
-        path.includes("placeholder/")
+        pathLower.includes("/placeholder") ||
+        pathLower.includes("placeholder/")
       ) {
-        return fromKey;
+        return null;
+      }
+      const p = parsed.pathname;
+      if (p.startsWith("/uploads/")) {
+        return p;
       }
     } catch {
-      return fromKey ?? u;
+      return null;
     }
     return u;
   }
 
-  return u || fromKey;
+  return u;
 }
