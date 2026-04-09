@@ -25,7 +25,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
     formatActorSurnameAndFirstName(app.producerProfile.fullName);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-0 sm:pb-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-0 sm:pb-2">
       <div className="shrink-0">
         <h1 className="text-xl font-bold">{app.casting.title}</h1>
         <p className="text-sm text-muted-foreground">{producerLine} · отклик</p>
@@ -66,7 +66,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
         })}
       </ChatMessagesScrollArea>
 
-      <div className="shrink-0">
+      <div className="sticky bottom-0 z-20 shrink-0 border-t border-border/60 bg-background pt-2 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))] dark:shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.25)]">
         <ChatComposerUnified chatId={chatId} disabled={!!chat.closedAt} />
       </div>
     </div>

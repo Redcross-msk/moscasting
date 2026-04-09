@@ -175,7 +175,7 @@ export function ActorChatsInbox({
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-1 flex-col",
+        "flex min-h-0 flex-1 flex-col",
         !panel && "space-y-4",
         panel && "min-h-0 overflow-hidden",
       )}
@@ -320,7 +320,7 @@ export function ActorChatsInbox({
           className={cn(
             "flex min-h-0 flex-col overflow-hidden md:col-span-8 md:min-h-0",
             !panel && "hidden md:flex md:min-h-[480px]",
-            panel && "min-h-0 flex-1 md:h-full md:max-h-none",
+            panel && "min-h-0 flex-1",
           )}
         >
           {!panel ? (
@@ -359,7 +359,7 @@ export function ActorChatsInbox({
                 ))}
               </ChatMessagesScrollArea>
               {panel.kind === "application" ? (
-                <div className="mt-2 shrink-0 sm:mt-3">
+                <div className="sticky bottom-0 z-20 mt-2 shrink-0 border-t border-border/60 bg-background pt-2 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mt-3 dark:shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.25)]">
                   <ChatComposerUnified
                     chatId={panel.chatId}
                     disabled={!!panel.closedAt}
@@ -369,7 +369,7 @@ export function ActorChatsInbox({
                 </div>
               ) : (
                 <form
-                  className="mt-2 flex shrink-0 flex-col gap-2 sm:mt-3"
+                  className="sticky bottom-0 z-20 mt-2 flex shrink-0 flex-col gap-2 border-t border-border/60 bg-background pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.06)] sm:mt-3 dark:shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.25)]"
                   onSubmit={(e) => {
                     e.preventDefault();
                     sendDirect();

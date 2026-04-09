@@ -52,8 +52,16 @@
 
   body.chat-immersive {
     overflow: hidden;
+    /* dvh — запас; на iOS Safari svh ближе к видимой области с нижней панелью */
     height: 100dvh;
     max-height: 100dvh;
+  }
+
+  @supports (height: 100svh) {
+    body.chat-immersive {
+      height: 100svh;
+      max-height: 100svh;
+    }
   }
 
   body.chat-immersive main {

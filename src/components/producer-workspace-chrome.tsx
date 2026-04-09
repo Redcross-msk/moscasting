@@ -17,7 +17,7 @@ export function ProducerWorkspaceChrome({ role, children }: { role: string; chil
 
   if (immersiveChat) {
     return (
-      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="mb-3 shrink-0 border-b border-border pb-3">
           <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
             <Link href="/producer/chats">
@@ -26,7 +26,7 @@ export function ProducerWorkspaceChrome({ role, children }: { role: string; chil
             </Link>
           </Button>
         </div>
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
       </div>
     );
   }
