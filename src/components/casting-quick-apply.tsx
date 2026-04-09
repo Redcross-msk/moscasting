@@ -31,6 +31,7 @@ function previewToPayload(p: Exclude<ActorApplyPreview, { error: string }>) {
     heightCm: p.heightCm,
     weightKg: p.weightKg,
     avatarUrl: p.avatarUrl,
+    avatarStorageKey: p.avatarStorageKey,
   };
 }
 

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const legalLinks = [
   { href: "/privacy", label: "Политика конфиденциальности" },
@@ -8,6 +11,11 @@ const legalLinks = [
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/actor/chats") || pathname.startsWith("/producer/chats")) {
+    return null;
+  }
+
   return (
     <footer className="mt-auto border-t border-border bg-muted/20">
       <div className="mx-auto flex max-w-6xl min-w-0 flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4">

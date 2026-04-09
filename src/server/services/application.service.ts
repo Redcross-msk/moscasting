@@ -55,7 +55,9 @@ export async function applyToCasting(params: {
     if (!actor) throw new Error("Профиль актёра не найден");
 
     const age = calculateAge(new Date(actor.birthDate));
-    const avatarUrl = actor.media[0]?.publicUrl?.trim() || null;
+    const avatarMedia = actor.media[0];
+    const avatarUrl = avatarMedia?.publicUrl?.trim() || null;
+    const avatarStorageKey = avatarMedia?.storageKey?.trim() || null;
     const payload: Prisma.InputJsonValue = {
       kind: "actor_profile",
       actorProfileId: actor.id,
@@ -65,6 +67,7 @@ export async function applyToCasting(params: {
       heightCm: actor.heightCm,
       weightKg: actor.weightKg,
       avatarUrl,
+      avatarStorageKey,
     };
     const body =
       params.coverNote?.trim() ||

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { User } from "lucide-react";
 import type { ActorProfileMessagePayload } from "@/lib/message-payload";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 import { cn, formatActorSurnameAndFirstName, russianYearsWord } from "@/lib/utils";
 
 export function ActorProfileSnapshotCard({ data }: { data: ActorProfileMessagePayload }) {
   const displayName = formatActorSurnameAndFirstName(data.fullName);
-  const url = data.avatarUrl?.trim();
+  const url = resolveUploadedMediaSrc(data.avatarUrl ?? null, data.avatarStorageKey ?? null);
 
   return (
     <Link

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { MediaKind, ModerationStatus } from "@prisma/client";
-import { MAX_ACTOR_PORTFOLIO_VIDEOS } from "@/lib/actor-portfolio-limits";
 import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
 import { runActorPortfolioPhotosUpload } from "@/server/media/actor-portfolio-photos-upload";
 import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
@@ -136,13 +135,6 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
   if (!videoMime) return { error: "Допустимы MP4, WebM, MOV (с телефона тип иногда пустой — расширение .mp4/.mov/.webm)" };
   if (file.size > MAX_VIDEO_BYTES) return { error: "Видео до 120 МБ" };
 
-  const videoCount = await prisma.mediaFile.count({
-    where: { actorProfileId: profile.id, kind: MediaKind.VIDEO },
-  });
-  if (videoCount >= MAX_ACTOR_PORTFOLIO_VIDEOS) {
-    return { error: `Не больше ${MAX_ACTOR_PORTFOLIO_VIDEOS} видеовизиток` };
-  }
-
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length < MIN_VIDEO_BYTES) {
@@ -152,24 +144,38 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
     const rel = `actor/${profile.id}/${randomUUID()}.${ext}`;
     const publicUrl = await savePublicUpload(rel, buffer);
 
+    const previousVideos = await prisma.mediaFile.findMany({
+      where: { actorProfileId: profile.id, kind: MediaKind.VIDEO },
+      select: { storageKey: true },
+    });
+
     const sortBase =
       (await prisma.mediaFile.aggregate({
         where: { actorProfileId: profile.id },
         _max: { sortOrder: true },
       }))._max.sortOrder ?? -1;
 
-    await prisma.mediaFile.create({
-      data: {
-        kind: MediaKind.VIDEO,
-        storageKey: rel,
-        publicUrl,
-        mimeType: videoMime,
-        actorProfileId: profile.id,
-        sortOrder: sortBase + 1,
-        isAvatar: false,
-        moderationStatus: ModerationStatus.PENDING,
-      },
-    });
+    await prisma.$transaction([
+      prisma.mediaFile.deleteMany({
+        where: { actorProfileId: profile.id, kind: MediaKind.VIDEO },
+      }),
+      prisma.mediaFile.create({
+        data: {
+          kind: MediaKind.VIDEO,
+          storageKey: rel,
+          publicUrl,
+          mimeType: videoMime,
+          actorProfileId: profile.id,
+          sortOrder: sortBase + 1,
+          isAvatar: false,
+          moderationStatus: ModerationStatus.PENDING,
+        },
+      }),
+    ]);
+
+    for (const row of previousVideos) {
+      await deletePublicUploadFile(row.storageKey);
+    }
 
     revalidatePath("/actor/profile");
     revalidatePath("/actor/profile/edit");

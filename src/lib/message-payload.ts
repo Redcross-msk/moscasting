@@ -10,6 +10,8 @@ export type ActorProfileMessagePayload = {
   weightKg: number | null;
   /** Превью в чате; старые сообщения могли сохраниться без поля */
   avatarUrl?: string | null;
+  /** Ключ в `public/uploads` — для ссылок через `/api/media/…` */
+  avatarStorageKey?: string | null;
 };
 
 export function parseActorProfilePayload(payload: unknown): ActorProfileMessagePayload | null {
@@ -20,6 +22,10 @@ export function parseActorProfilePayload(payload: unknown): ActorProfileMessageP
   const age = typeof o.age === "number" ? o.age : 0;
   const avatarUrl =
     typeof o.avatarUrl === "string" && o.avatarUrl.trim() ? o.avatarUrl.trim() : null;
+  const avatarStorageKey =
+    typeof o.avatarStorageKey === "string" && o.avatarStorageKey.trim()
+      ? o.avatarStorageKey.trim()
+      : null;
   return {
     kind: "actor_profile",
     actorProfileId: o.actorProfileId,
@@ -29,6 +35,7 @@ export function parseActorProfilePayload(payload: unknown): ActorProfileMessageP
     heightCm: typeof o.heightCm === "number" ? o.heightCm : null,
     weightKg: typeof o.weightKg === "number" ? o.weightKg : null,
     avatarUrl,
+    avatarStorageKey,
   };
 }
 

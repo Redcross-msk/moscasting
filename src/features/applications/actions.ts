@@ -25,6 +25,7 @@ export type ActorApplyPreview =
       heightCm: number | null;
       weightKg: number | null;
       avatarUrl: string | null;
+      avatarStorageKey: string | null;
     };
 
 export async function getActorProfilePreviewForApply(): Promise<ActorApplyPreview> {
@@ -39,7 +40,9 @@ export async function getActorProfilePreviewForApply(): Promise<ActorApplyPrevie
   if (!profile) {
     return { error: "Сначала заполните профиль актёра" };
   }
-  const avatarUrl = profile.media[0]?.publicUrl?.trim() || null;
+  const m = profile.media[0];
+  const avatarUrl = m?.publicUrl?.trim() || null;
+  const avatarStorageKey = m?.storageKey?.trim() || null;
   return {
     actorProfileId: profile.id,
     fullName: profile.fullName,
@@ -48,6 +51,7 @@ export async function getActorProfilePreviewForApply(): Promise<ActorApplyPrevie
     heightCm: profile.heightCm,
     weightKg: profile.weightKg,
     avatarUrl,
+    avatarStorageKey,
   };
 }
 

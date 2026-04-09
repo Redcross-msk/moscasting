@@ -7,7 +7,6 @@ import { deleteActorPortfolioVideoAction } from "@/features/media/actions";
 import { uploadActorPortfolioVideoFormAction } from "@/features/media/upload-actions";
 import { Button } from "@/components/ui/button";
 import { VideoWithPosterFrame } from "@/components/video-with-poster-frame";
-import { MAX_ACTOR_PORTFOLIO_VIDEOS } from "@/lib/actor-portfolio-limits";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 type VideoItem = { id: string; publicUrl: string | null; storageKey?: string };
@@ -22,11 +21,8 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
   const [videoUrlAfterUpload, setVideoUrlAfterUpload] = useState<string | null>(null);
   const [videoStorageKeyAfterUpload, setVideoStorageKeyAfterUpload] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const atVideoLimit = portfolioVideos.length >= MAX_ACTOR_PORTFOLIO_VIDEOS;
   const justUploadedResolved = resolveUploadedMediaSrc(videoUrlAfterUpload, videoStorageKeyAfterUpload);
-  const hasSavedVideoVisit =
-    portfolioVideos.some((v) => resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null)) ||
-    Boolean(justUploadedResolved);
+  const hasVideoOnServer = portfolioVideos.some((v) => resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null));
 
   function videoSrc(v: VideoItem): string | null {
     return resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null);
@@ -37,7 +33,8 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
       <div>
         <h2 className="text-sm font-semibold text-primary">Видеовизитка</h2>
         <p className="text-xs text-muted-foreground">
-          MP4, WebM, MOV, до 120 МБ. До {MAX_ACTOR_PORTFOLIO_VIDEOS} роликов (отдельно от фото).
+          MP4, WebM, MOV, до 120 МБ. Одна видеовизитка на профиль; новый файл заменяет предыдущий (отдельно от фото
+          портфолио).
         </p>
       </div>
       <input
@@ -74,14 +71,10 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
       <Button
         type="button"
         variant="outline"
-        disabled={videoPending || videoDeletePending || atVideoLimit}
+        disabled={videoPending || videoDeletePending}
         onClick={() => videoInputRef.current?.click()}
       >
-        {portfolioVideos.length === 0
-          ? "Добавить видеовизитку"
-          : atVideoLimit
-            ? `Лимит: ${MAX_ACTOR_PORTFOLIO_VIDEOS} видео`
-            : `Добавить ещё видеовизитку (${portfolioVideos.length}/${MAX_ACTOR_PORTFOLIO_VIDEOS})`}
+        {hasVideoOnServer || justUploadedResolved ? "Заменить видеовизитку" : "Добавить видеовизитку"}
       </Button>
       {videoErr ? <p className="text-sm text-destructive">{videoErr}</p> : null}
       {videoMutErr ? <p className="text-sm text-destructive">{videoMutErr}</p> : null}

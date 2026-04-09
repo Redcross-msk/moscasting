@@ -8,15 +8,25 @@ import { ActorEditVideoVisit } from "@/components/actor-edit-video-visit";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaKind } from "@prisma/client";
+import { dedupeActorPortfolioVideoToSingle } from "@/server/media/dedupe-actor-video-visit";
 
 export const dynamic = "force-dynamic";
 
 export default async function ActorProfileEditPage() {
   noStore();
   const session = await auth();
+  const userId = session!.user.id;
+
+  const profileStub = await prisma.actorProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (!profileStub) return <p>Профиль не найден</p>;
+  await dedupeActorPortfolioVideoToSingle(profileStub.id);
+
   const [profile, cities] = await Promise.all([
     prisma.actorProfile.findUnique({
-      where: { userId: session!.user.id },
+      where: { userId },
       include: { city: true, media: true },
     }),
     prisma.city.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, slug: true } }),

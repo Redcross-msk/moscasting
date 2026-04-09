@@ -117,7 +117,8 @@ export function ActorProfileView({
     .filter(
       (m) => m.kind === "VIDEO" && !!(m.publicUrl?.trim() || m.storageKey?.trim()) && mediaSrc(m),
     )
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .slice(0, 1);
 
   const langLabels = profile.languages
     .map((slug) => languageLabel[slug as keyof typeof languageLabel] ?? slug)
