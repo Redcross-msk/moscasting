@@ -13,10 +13,12 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
   const [videoErr, setVideoErr] = useState<string | null>(null);
   const [videoPickPreview, setVideoPickPreview] = useState<string | null>(null);
   const [videoUrlAfterUpload, setVideoUrlAfterUpload] = useState<string | null>(null);
+  const [videoStorageKeyAfterUpload, setVideoStorageKeyAfterUpload] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const justUploadedResolved = resolveUploadedMediaSrc(videoUrlAfterUpload, videoStorageKeyAfterUpload);
   const hasSavedVideoVisit =
     portfolioVideos.some((v) => resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null)) ||
-    Boolean(videoUrlAfterUpload);
+    Boolean(justUploadedResolved);
 
   function videoSrc(v: VideoItem): string | null {
     return resolveUploadedMediaSrc(v.publicUrl, v.storageKey ?? null);
@@ -31,7 +33,7 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
       <input
         ref={videoInputRef}
         type="file"
-        accept="video/mp4,video/webm,video/quicktime"
+        accept="video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v"
         className="sr-only"
         onChange={(e) => {
           const input = e.target;
@@ -54,6 +56,7 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
             URL.revokeObjectURL(url);
             setVideoPickPreview(null);
             if (res.publicUrl) setVideoUrlAfterUpload(res.publicUrl);
+            setVideoStorageKeyAfterUpload(res.storageKey ?? null);
           });
         }}
       />
@@ -61,7 +64,7 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
         {hasSavedVideoVisit ? "Изменить видеовизитку" : "Добавить видеовизитку"}
       </Button>
       {videoErr ? <p className="text-sm text-destructive">{videoErr}</p> : null}
-      {(portfolioVideos.some((v) => videoSrc(v)) || videoPickPreview || videoUrlAfterUpload) && (
+      {(portfolioVideos.some((v) => videoSrc(v)) || videoPickPreview || justUploadedResolved) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {portfolioVideos
             .filter((v) => videoSrc(v))
@@ -70,9 +73,10 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
                 <VideoWithPosterFrame src={videoSrc(v)!} />
               </div>
             ))}
-          {videoUrlAfterUpload && !portfolioVideos.some((v) => v.publicUrl === videoUrlAfterUpload) ? (
+          {justUploadedResolved &&
+          !portfolioVideos.some((v) => videoSrc(v) === justUploadedResolved) ? (
             <div key="just-uploaded" className="overflow-hidden rounded-md border">
-              <VideoWithPosterFrame src={videoUrlAfterUpload} />
+              <VideoWithPosterFrame src={justUploadedResolved} />
             </div>
           ) : null}
           {videoPickPreview ? (

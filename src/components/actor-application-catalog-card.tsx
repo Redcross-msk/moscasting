@@ -9,6 +9,7 @@ import { castingCategoryLabelRu, formatShootDateTimeRu, type SerializedRoleReq }
 import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 import { castingLocationParts } from "@/lib/casting-location-lines";
 import { WithdrawButton } from "@/app/actor/applications/withdraw-button";
+import { actorApplicationStatusPresentation } from "@/lib/actor-application-status";
 
 function RoleReqBlock({ r }: { r: SerializedRoleReq }) {
   if (r.type === "mass") {
@@ -57,6 +58,7 @@ export function ActorApplicationCatalogCard({
   });
 
   const canWithdraw = !WITHDRAWN_BLOCKED.has(status);
+  const statusBadge = actorApplicationStatusPresentation(status);
 
   const mainCatalog = (
     <div className="relative min-w-0 flex-1 space-y-2 border-l-4 border-primary pl-4 pr-2 md:pr-4">
@@ -121,8 +123,8 @@ export function ActorApplicationCatalogCard({
   const side = (
     <aside className="flex w-full shrink-0 flex-col items-stretch justify-center gap-3 border-border md:min-w-[200px] md:max-w-[240px] md:border-l md:pl-4">
       <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-end">
-        <Badge variant="secondary" className="font-normal">
-          {status}
+        <Badge variant={statusBadge.variant} className="font-normal uppercase tracking-wide">
+          {statusBadge.label}
         </Badge>
       </div>
       {paymentLine ? <div className="md:text-right">{paymentLine}</div> : null}

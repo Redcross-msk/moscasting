@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { CastingStatus, ModerationStatus } from "@prisma/client";
+import { ApplicationStatus, CastingStatus, ModerationStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getPublicActorProfile } from "@/server/services/actor-profile.service";
 import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 import { ActorProfileView } from "@/components/actor-profile-view";
+import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
 
 export default async function ActorPublicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,9 +15,44 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
   const session = await auth();
   const mediaWithLikes = await attachPortfolioLikesToPhotos(profile.media, session?.user?.id);
 
+  const historyStatuses: ApplicationStatus[] = [
+    ApplicationStatus.ACCEPTED,
+    ApplicationStatus.INVITED,
+    ApplicationStatus.CAST_PASSED,
+  ];
+  const history = await prisma.application.findMany({
+    where: { actorProfileId: profile.id, status: { in: historyStatuses } },
+    orderBy: { updatedAt: "desc" },
+    take: 200,
+    include: {
+      casting: {
+        include: {
+          city: true,
+          producerProfile: { select: { id: true, companyName: true, fullName: true } },
+        },
+      },
+    },
+  });
+  const castingHistoryRows = history.map((h) => ({
+    serialized: serializeCastingForBrowse(h.casting),
+    status: h.status,
+  }));
+
   const role = session?.user?.role;
   const showCatalogBack =
     role === "ACTOR" || role === "PRODUCER" || role === "ADMIN";
+
+  let ratingInteractive: { subjectUserId: string; initialStars: number | null } | undefined;
+  const subjectUserId = profile.user.id;
+  if (session?.user?.id && session.user.id !== subjectUserId) {
+    const row = await prisma.profileStarRating.findUnique({
+      where: {
+        authorId_subjectUserId: { authorId: session.user.id, subjectUserId },
+      },
+      select: { stars: true },
+    });
+    ratingInteractive = { subjectUserId, initialStars: row?.stars ?? null };
+  }
 
   let producerInvite: { actorProfileId: string; castings: { id: string; title: string }[] } | undefined;
   if (session?.user?.role === "PRODUCER") {
@@ -46,6 +82,9 @@ export default async function ActorPublicPage({ params }: { params: Promise<{ id
       showCatalogBack={showCatalogBack}
       producerInvite={producerInvite}
       canLikePortfolioPhotos={Boolean(session?.user?.id)}
+      ratingInteractive={ratingInteractive}
+      castingHistory={castingHistoryRows}
+      historyCanBrowseCastings={Boolean(session?.user?.id)}
       profile={{
         fullName: profile.fullName,
         birthDate: profile.birthDate,

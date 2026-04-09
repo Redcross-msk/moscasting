@@ -8,17 +8,35 @@ import { MediaKind, ModerationStatus } from "@prisma/client";
 import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
 import { runActorPortfolioPhotosUpload } from "@/server/media/actor-portfolio-photos-upload";
 import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
+import { effectiveVideoMime } from "@/server/media/effective-upload-mime";
 
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 30 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 120 * 1024 * 1024;
 
-const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const VIDEO_TYPES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-m4v",
+  "video/m4v",
+]);
 
 function extFromMime(mime: string): string {
-  if (mime === "video/mp4") return "mp4";
-  if (mime === "video/webm") return "webm";
-  if (mime === "video/quicktime") return "mov";
-  return "bin";
+  const m = mime.toLowerCase();
+  if (m === "video/mp4" || m === "video/x-m4v" || m === "video/m4v") return "mp4";
+  if (m === "video/webm") return "webm";
+  if (m === "video/quicktime") return "mov";
+  return "mp4";
+}
+
+function normalizedVideoMimeForStorage(file: File): string | null {
+  const fromDeclared = effectiveVideoMime(file);
+  if (VIDEO_TYPES.has(fromDeclared)) return fromDeclared;
+  const n = file.name.toLowerCase();
+  if (n.endsWith(".webm")) return "video/webm";
+  if (n.endsWith(".mov") || n.endsWith(".qt")) return "video/quicktime";
+  if (n.endsWith(".mp4") || n.endsWith(".m4v")) return "video/mp4";
+  return null;
 }
 
 async function getActorProfileOrThrow() {
@@ -28,7 +46,7 @@ async function getActorProfileOrThrow() {
   return profile;
 }
 
-export type UploadResult = { error?: string; publicUrl?: string | null };
+export type UploadResult = { error?: string; publicUrl?: string | null; storageKey?: string | null };
 
 export type PortfolioPhotosUploadResult =
   | { error: string }
@@ -40,7 +58,7 @@ export async function uploadActorAvatarFormAction(formData: FormData): Promise<U
 
   const file = formData.get("avatar");
   if (!file || typeof file === "string" || file.size === 0) return { error: "Выберите файл" };
-  if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 5 МБ" };
+  if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 30 МБ (после загрузки сожмём в JPEG)" };
 
   try {
     const prepared = await prepareUploadedProfileImage(file);
@@ -89,7 +107,7 @@ export async function uploadActorAvatarFormAction(formData: FormData): Promise<U
     revalidatePath("/actor/profile/edit");
     revalidatePath(`/actors/${profile.id}`);
     revalidatePath("/explore");
-    return { publicUrl };
+    return { publicUrl, storageKey: rel };
   } catch {
     return { error: "Не удалось сохранить аватар" };
   }
@@ -112,7 +130,8 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
 
   const file = formData.get("video");
   if (!file || typeof file === "string" || file.size === 0) return { error: "Выберите видео" };
-  if (!VIDEO_TYPES.has(file.type)) return { error: "Допустимы MP4, WebM, MOV" };
+  const videoMime = normalizedVideoMimeForStorage(file);
+  if (!videoMime) return { error: "Допустимы MP4, WebM, MOV (с телефона тип иногда пустой — расширение .mp4/.mov/.webm)" };
   if (file.size > MAX_VIDEO_BYTES) return { error: "Видео до 120 МБ" };
 
   const count = await prisma.mediaFile.count({ where: { actorProfileId: profile.id } });
@@ -120,7 +139,7 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = extFromMime(file.type);
+    const ext = extFromMime(videoMime);
     const rel = `actor/${profile.id}/${randomUUID()}.${ext}`;
     const publicUrl = await savePublicUpload(rel, buffer);
 
@@ -135,7 +154,7 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
         kind: MediaKind.VIDEO,
         storageKey: rel,
         publicUrl,
-        mimeType: file.type,
+        mimeType: videoMime,
         actorProfileId: profile.id,
         sortOrder: sortBase + 1,
         isAvatar: false,
@@ -147,7 +166,7 @@ export async function uploadActorPortfolioVideoFormAction(formData: FormData): P
     revalidatePath("/actor/profile/edit");
     revalidatePath(`/actors/${profile.id}`);
     revalidatePath("/explore");
-    return { publicUrl };
+    return { publicUrl, storageKey: rel };
   } catch {
     return { error: "Не удалось сохранить видео" };
   }
@@ -165,7 +184,7 @@ export async function uploadProducerAvatarFormAction(formData: FormData): Promis
 
   const file = formData.get("avatar");
   if (!file || typeof file === "string" || file.size === 0) return { error: "Выберите файл" };
-  if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 5 МБ" };
+  if (file.size > MAX_AVATAR_BYTES) return { error: "Аватар до 30 МБ (после загрузки сожмём в JPEG)" };
 
   try {
     const prepared = await prepareUploadedProfileImage(file);
@@ -214,7 +233,7 @@ export async function uploadProducerAvatarFormAction(formData: FormData): Promis
     revalidatePath("/producer/profile/edit");
     revalidatePath(`/producers/${profile.id}`);
     revalidatePath("/explore");
-    return { publicUrl };
+    return { publicUrl, storageKey: rel };
   } catch {
     return { error: "Не удалось сохранить аватар" };
   }

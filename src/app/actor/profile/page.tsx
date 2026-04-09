@@ -1,9 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { ApplicationStatus } from "@prisma/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActorProfileView } from "@/components/actor-profile-view";
-import { CastingHistoryList } from "@/components/casting-history-list";
 import { serializeCastingForBrowse } from "@/lib/serialize-casting-browse";
 import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 
@@ -26,7 +24,7 @@ export default async function ActorProfileCabinetPage() {
   const history = await prisma.application.findMany({
     where: { actorProfileId: profile.id, status: { in: historyStatuses } },
     orderBy: { updatedAt: "desc" },
-    take: 20,
+    take: 200,
     include: {
       casting: {
         include: {
@@ -50,6 +48,8 @@ export default async function ActorProfileCabinetPage() {
         variant="cabinet"
         editHref="/actor/profile/edit"
         canLikePortfolioPhotos={Boolean(session?.user?.id)}
+        castingHistory={historyRows}
+        historyCanBrowseCastings
         profile={{
           fullName: profile.fullName,
           birthDate: profile.birthDate,
@@ -82,19 +82,6 @@ export default async function ActorProfileCabinetPage() {
           likedByMe: m.likedByMe,
         }))}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">История одобренных кастингов</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm">
-          {historyRows.length === 0 ? (
-            <p className="text-muted-foreground">Пока нет записей со статусом приглашение / принят / кастинг пройден.</p>
-          ) : (
-            <CastingHistoryList rows={historyRows} />
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

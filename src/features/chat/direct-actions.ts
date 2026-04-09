@@ -10,6 +10,7 @@ import {
   markDirectThreadReadForViewer,
   sendDirectThreadMessage,
 } from "@/server/services/chat.service";
+import { applicationChatMessageReceipt, directThreadMessageReceipt } from "@/lib/chat-message-receipt";
 import { chatSenderPublicLabel, formatChatMessageTimeHm } from "@/lib/chat-sender-display";
 import { formatActorSurnameAndFirstName } from "@/lib/utils";
 
@@ -48,14 +49,18 @@ export async function fetchApplicationChatPanelAction(chatId: string) {
     applicationStatus: chat.application.status,
     messages: chat.messages.map((m) => {
       const isMine = m.senderId === session.user.id;
-      const readByCounterparty = isMine && m.reads.some((r) => r.userId === counterpartyUserId);
       return {
         id: m.id,
         senderId: m.senderId,
         senderLabel: chatSenderPublicLabel(m.sender),
         createdAtIso: m.createdAt.toISOString(),
         timeHm: formatChatMessageTimeHm(m.createdAt),
-        receipt: (isMine ? (readByCounterparty ? "read" : "sent") : "none") as "none" | "sent" | "read",
+        receipt: applicationChatMessageReceipt({
+          isMine,
+          viewerUserId: session.user.id,
+          counterpartyUserId,
+          reads: m.reads,
+        }),
         body: m.body,
         payload: m.payload,
       };
@@ -68,8 +73,12 @@ export async function fetchDirectThreadPanelAction(threadId: string) {
   if (!session?.user) return null;
   const thread = await getDirectThreadWithAccess(threadId, session.user.id);
   if (!thread) return null;
+  const lastSeenAtProducer = thread.lastSeenAtProducer;
+  const lastSeenAtActor = thread.lastSeenAtActor;
+  const producerUserId = thread.producerProfile.userId;
+  const actorUserId = thread.actorProfile.userId;
   await markDirectThreadReadForViewer(threadId, session.user.id);
-  const isProducer = thread.producerProfile.userId === session.user.id;
+  const isProducer = producerUserId === session.user.id;
   return {
     kind: "direct" as const,
     threadId: thread.id,
@@ -85,7 +94,15 @@ export async function fetchDirectThreadPanelAction(threadId: string) {
         senderLabel: chatSenderPublicLabel(m.sender),
         createdAtIso: m.createdAt.toISOString(),
         timeHm: formatChatMessageTimeHm(m.createdAt),
-        receipt: (isMine ? "sent" : "none") as "none" | "sent" | "read",
+        receipt: directThreadMessageReceipt({
+          isMine,
+          viewerUserId: session.user.id,
+          producerUserId,
+          actorUserId,
+          messageCreatedAt: m.createdAt,
+          lastSeenAtProducer,
+          lastSeenAtActor,
+        }),
         body: m.body,
       };
     }),

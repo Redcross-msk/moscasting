@@ -7,7 +7,7 @@ import { normalizePortfolioImageBuffer } from "@/server/media/portfolio-image-no
 import { savePublicUpload } from "@/server/uploads/save-public-upload";
 
 const MAX_PRODUCER_FILES = 5;
-const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 35 * 1024 * 1024;
 const IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -35,6 +35,13 @@ export async function runProducerPortfolioPhotosUpload(
   const valid = rawFiles.filter((f) => f && typeof f !== "string" && f.size > 0) as File[];
   if (valid.length === 0) return { error: "Выберите хотя бы одно фото" };
 
+  const overLimit = valid.filter((f) => f.size > MAX_PHOTO_BYTES);
+  if (overLimit.length > 0) {
+    return {
+      error: `Файл слишком большой (до 35 МБ на фото): ${overLimit[0].name}`,
+    };
+  }
+
   const count = await prisma.mediaFile.count({ where: { producerProfileId } });
   const maxAdd = Math.max(0, MAX_PRODUCER_FILES - count);
   if (maxAdd <= 0) return { error: `Уже максимум ${MAX_PRODUCER_FILES} файлов в профиле` };
@@ -53,7 +60,6 @@ export async function runProducerPortfolioPhotosUpload(
   try {
     for (const file of valid) {
       if (added >= maxAdd) break;
-      if (file.size > MAX_PHOTO_BYTES) continue;
       const raw = Buffer.from(await file.arrayBuffer());
       let mimeIn = effectiveImageMime(file).toLowerCase();
       if (mimeIn === "image/jpg") mimeIn = "image/jpeg";

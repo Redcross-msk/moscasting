@@ -1,3 +1,12 @@
+function ratingCountLabelRu(count: number) {
+  const n = count % 100;
+  if (n >= 11 && n <= 14) return `${count} оценок`;
+  const k = count % 10;
+  if (k === 1) return `${count} оценка`;
+  if (k >= 2 && k <= 4) return `${count} оценки`;
+  return `${count} оценок`;
+}
+
 export function StarRatingDisplay({
   average,
   count,
@@ -13,14 +22,14 @@ export function StarRatingDisplay({
   const captionClass = size === "lg" ? "text-sm sm:text-base" : "text-sm";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
       <span className={`text-amber-500 ${starClass}`} aria-hidden>
         {[1, 2, 3, 4, 5].map((i) => (
           <span key={i}>{i <= full ? "★" : "☆"}</span>
         ))}
       </span>
       <span className={`text-muted-foreground ${captionClass}`}>
-        {average.toFixed(1)} · {count} {count === 1 ? "отзыв" : count < 5 ? "отзыва" : "отзывов"}
+        {average.toFixed(1)} · {ratingCountLabelRu(count)}
       </span>
     </div>
   );

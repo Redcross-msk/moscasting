@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { CastingCategory, CastingStatus, Gender, ModerationStatus } from "@prisma/client";
@@ -29,6 +30,7 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { ExploreCastingsPagination, ExploreCastingsToolbar } from "@/components/explore-castings-toolbar";
+import { ExploreCatalogScrollReset } from "@/components/explore-catalog-scroll-reset";
 import { ExploreRoleBar } from "@/components/explore-role-bar";
 import { professionalSkillLabel } from "@/lib/actor-form-constants";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
@@ -311,6 +313,9 @@ export default async function ExplorePage({
 
   return (
     <div className="min-w-0 space-y-6 pb-8 sm:space-y-8 sm:pb-10">
+      <Suspense fallback={null}>
+        <ExploreCatalogScrollReset />
+      </Suspense>
       <div className="flex min-w-0 flex-col gap-3 border-b border-border pb-3 md:flex-row md:flex-nowrap md:items-center md:justify-between md:gap-4">
         <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5 sm:gap-2 md:shrink-0 md:overflow-visible md:pb-0">
           <Link

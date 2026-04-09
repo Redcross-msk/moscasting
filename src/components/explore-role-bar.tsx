@@ -13,8 +13,9 @@ type ExploreRoleBarProps = {
 };
 
 /** Одна строка кнопок; на узком экране при нехватке места — горизонтальная прокрутка. */
+/** pt-2 на узкой ширине: при overflow-x-auto вертикальная ось тоже режет вылеты — иначе бейдж «Чаты» обрезается сверху. */
 const roleNavClusterClass =
-  "flex min-w-0 w-full max-w-full flex-nowrap items-center justify-start gap-x-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-auto lg:w-max lg:justify-end lg:gap-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden";
+  "flex min-w-0 w-full max-w-full flex-nowrap items-center justify-start gap-x-1.5 overflow-x-auto overscroll-x-contain pt-2 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-auto lg:w-max lg:justify-end lg:gap-2 lg:overflow-visible lg:py-0 [&::-webkit-scrollbar]:hidden";
 
 export function ExploreRoleBar({ role, className, favoritesLinkActive }: ExploreRoleBarProps) {
   const barBtn =

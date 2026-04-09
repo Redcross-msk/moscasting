@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ProducerCastingCardActions } from "@/components/producer-casting-card-actions";
 import { ProducerCastingSpecGrid } from "@/components/producer-casting-spec-grid";
 import { useProducerCastingsPageSize } from "@/hooks/use-producer-castings-page-size";
+import { useScrollTopOnPageChange } from "@/hooks/use-scroll-top-on-page-change";
 import { formatShootDateParts } from "@/lib/casting-display";
 import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 
@@ -106,6 +107,8 @@ export function ProducerCastingsPaginatedList({
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useScrollTopOnPageChange(safePage);
 
   if (items.length === 0) return null;
 

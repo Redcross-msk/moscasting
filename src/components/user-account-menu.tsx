@@ -49,6 +49,7 @@ export function UserAccountMenu() {
     session.user.displayName?.trim() || session.user.name?.trim() || session.user.email || "Аккаунт";
 
   const role = session.user.role;
+  const headerBadgeTotal = notifCount + unreadChats;
   const profileHref = role === "PRODUCER" ? "/producer/profile" : role === "ACTOR" ? "/actor/profile" : "/admin";
   const myCastingsHref = "/producer/castings";
   const myAppsHref = "/actor/applications";
@@ -57,9 +58,21 @@ export function UserAccountMenu() {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="max-w-[min(100%,240px)] gap-1 border-border px-2 font-normal">
+        <Button
+          variant="outline"
+          size="sm"
+          className="relative max-w-[min(100%,240px)] gap-1 border-border px-2 pr-2 font-normal"
+        >
           <span className="truncate text-xs sm:text-sm">{menuLabel}</span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
+          {headerBadgeTotal > 0 ? (
+            <span
+              className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#e53935] px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-background"
+              aria-label={`Непросмотренных уведомлений и чатов: ${headerBadgeTotal}`}
+            >
+              {headerBadgeTotal > 99 ? "99+" : headerBadgeTotal}
+            </span>
+          ) : null}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

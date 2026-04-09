@@ -16,9 +16,10 @@ export async function getPublicProducerProfile(id: string) {
       moderationStatus: { not: ModerationStatus.BLOCKED },
     },
     include: {
+      /** Как у публичного актёра: всё кроме BLOCKED (PENDING тоже виден гостям). В кабинете — без фильтра. */
       media: {
-        where: { moderationStatus: ModerationStatus.APPROVED },
-        orderBy: { sortOrder: "asc" },
+        where: { moderationStatus: { not: ModerationStatus.BLOCKED } },
+        orderBy: [{ isAvatar: "desc" }, { sortOrder: "asc" }],
       },
       user: { select: { id: true } },
       filmographyEntries: { orderBy: { sortOrder: "asc" } },

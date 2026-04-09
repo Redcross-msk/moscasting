@@ -22,7 +22,7 @@ export async function listChatsForActor(actorProfileId: string) {
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
-        select: { body: true, senderId: true },
+        select: { body: true, senderId: true, createdAt: true },
       },
     },
   });
@@ -87,17 +87,30 @@ async function applicationChatIdsWithUnreadFromViewer(
   chatIds: string[],
   viewerUserId: string,
 ): Promise<Set<string>> {
-  if (chatIds.length === 0) return new Set();
-  const rows = await prisma.message.findMany({
+  const counts = await applicationUnreadMessageCountsFromViewer(chatIds, viewerUserId);
+  return new Set([...counts.entries()].filter(([, n]) => n > 0).map(([id]) => id));
+}
+
+/** Сколько входящих непрочитанных сообщений по каждому чату отклика. */
+async function applicationUnreadMessageCountsFromViewer(
+  chatIds: string[],
+  viewerUserId: string,
+): Promise<Map<string, number>> {
+  if (chatIds.length === 0) return new Map();
+  const rows = await prisma.message.groupBy({
+    by: ["chatId"],
     where: {
       chatId: { in: chatIds },
       senderId: { not: viewerUserId },
       reads: { none: { userId: viewerUserId } },
     },
-    select: { chatId: true },
-    distinct: ["chatId"],
+    _count: { _all: true },
   });
-  return new Set(rows.map((r) => r.chatId));
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    m.set(r.chatId, r._count._all);
+  }
+  return m;
 }
 
 export async function getChatWithAccess(
@@ -205,7 +218,7 @@ export async function getProducerChatInboxData(producerProfileId: string, viewer
               messages: {
                 orderBy: { createdAt: "desc" },
                 take: 1,
-                select: { body: true, senderId: true },
+                select: { body: true, senderId: true, createdAt: true },
               },
             },
           },
@@ -228,20 +241,25 @@ export async function getProducerChatInboxData(producerProfileId: string, viewer
         preview: last?.body?.slice(0, 120) ?? "",
         applicationSubmittedAt: a.createdAt.toISOString(),
         lastMessageIsMine: last?.senderId != null ? last.senderId === viewerUserId : null,
+        lastMessageAt: (last?.createdAt ?? a.createdAt).toISOString(),
       };
     }),
   );
 
   const producerAppChatIds = applicationItems.map((i) => i.chatId);
-  const producerUnreadApp = await applicationChatIdsWithUnreadFromViewer(
+  const producerUnreadCounts = await applicationUnreadMessageCountsFromViewer(
     producerAppChatIds,
     viewerUserId,
   );
 
-  const applicationItemsWithUnread = applicationItems.map((row) => ({
-    ...row,
-    hasUnread: producerUnreadApp.has(row.chatId),
-  }));
+  const applicationItemsWithUnread = applicationItems.map((row) => {
+    const unreadCount = producerUnreadCounts.get(row.chatId) ?? 0;
+    return {
+      ...row,
+      unreadCount,
+      hasUnread: unreadCount > 0,
+    };
+  });
 
   return {
     items: applicationItemsWithUnread,
@@ -261,6 +279,7 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
       preview: string;
       applicationSubmittedAt: string;
       lastMessageIsMine: boolean | null;
+      lastMessageAt: string;
     }
   >();
   for (const c of chats) {
@@ -275,16 +294,21 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
       preview: last?.body?.slice(0, 120) ?? "",
       applicationSubmittedAt: c.application.createdAt.toISOString(),
       lastMessageIsMine: last?.senderId != null ? last.senderId === viewerUserId : null,
+      lastMessageAt: (last?.createdAt ?? c.updatedAt).toISOString(),
     });
   }
 
   const actorAppChatIds = [...byCasting.values()].map((r) => r.chatId);
-  const actorUnreadApp = await applicationChatIdsWithUnreadFromViewer(actorAppChatIds, viewerUserId);
+  const actorUnreadCounts = await applicationUnreadMessageCountsFromViewer(actorAppChatIds, viewerUserId);
 
-  const byCastingRows = [...byCasting.values()].map((row) => ({
-    ...row,
-    hasUnread: actorUnreadApp.has(row.chatId),
-  }));
+  const byCastingRows = [...byCasting.values()].map((row) => {
+    const unreadCount = actorUnreadCounts.get(row.chatId) ?? 0;
+    return {
+      ...row,
+      unreadCount,
+      hasUnread: unreadCount > 0,
+    };
+  });
 
   const directThreads = isProducerActorDirectThreadAvailable()
     ? await prisma.producerActorDirectThread.findMany({
@@ -292,7 +316,11 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
         orderBy: { updatedAt: "desc" },
         include: {
           producerProfile: { select: { userId: true, fullName: true, companyName: true } },
-          messages: { orderBy: { createdAt: "desc" }, take: 1, select: { body: true, senderId: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { body: true, senderId: true, createdAt: true },
+          },
         },
       })
     : [];
@@ -304,19 +332,18 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
         updatedAt: Date;
         lastSeenAtActor: Date | null;
         producerProfile: { userId: string; fullName: string; companyName: string | null };
-        messages: { body: string; senderId: string }[];
+        messages: { body: string; senderId: string; createdAt: Date }[];
       }) => {
         const last = t.messages[0];
-        let hasUnread = false;
+        let unreadCount = 0;
         if (isDirectThreadMessageAvailable()) {
-          const n = await prisma.directThreadMessage.count({
+          unreadCount = await prisma.directThreadMessage.count({
             where: {
               threadId: t.id,
               senderId: t.producerProfile.userId,
               ...(t.lastSeenAtActor ? { createdAt: { gt: t.lastSeenAtActor } } : {}),
             },
           });
-          hasUnread = n > 0;
         }
         return {
           threadId: t.id,
@@ -324,7 +351,9 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
           preview: last?.body?.slice(0, 120) ?? "",
           threadUpdatedAt: t.updatedAt.toISOString(),
           lastMessageIsMine: last?.senderId != null ? last.senderId === viewerUserId : null,
-          hasUnread,
+          lastMessageAt: (last?.createdAt ?? t.updatedAt).toISOString(),
+          unreadCount,
+          hasUnread: unreadCount > 0,
         };
       },
     ),

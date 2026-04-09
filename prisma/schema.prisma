@@ -178,6 +178,8 @@ model User {
   messageReads MessageRead[]
   reviewsAuthored Review[]    @relation("ReviewAuthor")
   reviewsAbout    Review[]     @relation("ReviewSubject")
+  profileStarRatingsGiven   ProfileStarRating[] @relation("ProfileStarRatingAuthor")
+  profileStarRatingsReceived ProfileStarRating[] @relation("ProfileStarRatingSubject")
   reportsFiled    Report[]     @relation("ReportReporter")
   adminLogs       AdminActivityLog[]
   castingViews      CastingView[]
@@ -573,6 +575,22 @@ model MessageRead {
 
   @@unique([messageId, userId])
   @@index([userId])
+}
+
+/// Оценка профиля с публичной страницы (1–5 звёзд); одна активная оценка на пару автор → получатель.
+model ProfileStarRating {
+  id            String   @id @default(uuid())
+  authorId      String
+  subjectUserId String
+  stars         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author  User @relation("ProfileStarRatingAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  subject User @relation("ProfileStarRatingSubject", fields: [subjectUserId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, subjectUserId])
+  @@index([subjectUserId])
 }
 
 /// Отзыв привязан к application; автор и получатель — User (роли выводятся из профилей).

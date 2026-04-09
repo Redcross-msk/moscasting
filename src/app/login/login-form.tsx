@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { signIn, getSession } from "next-auth/react";
 import { persistCookieConsent } from "@/lib/cookie-consent";
 import { Button } from "@/components/ui/button";
@@ -90,8 +91,15 @@ export function LoginForm() {
 
           {step === "form" && entryRole && (
             <form onSubmit={onSubmit} className="space-y-4">
-              <Button type="button" variant="ghost" size="sm" className="mb-2 px-0" onClick={() => setStep("choose")}>
-                ← Другой тип входа
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mb-2 w-fit shrink-0 gap-0"
+                onClick={() => setStep("choose")}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
+                Другой тип входа
               </Button>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

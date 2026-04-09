@@ -11,6 +11,12 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         outline: "text-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",
+        /** Статус отклика: ожидание решения кастинг-директора */
+        statusReview: "border-transparent bg-muted text-muted-foreground",
+        /** Приглашение / успешные этапы отклика */
+        statusSuccess: "border-transparent bg-emerald-600 text-white shadow-sm dark:bg-emerald-600",
+        /** Отказ */
+        statusRejected: "border-transparent bg-red-600 text-white shadow-sm dark:bg-red-600",
       },
     },
     defaultVariants: {

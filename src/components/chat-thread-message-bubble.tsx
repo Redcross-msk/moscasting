@@ -1,6 +1,7 @@
+import type { ChatMessageReceipt } from "@/lib/chat-message-receipt";
 import { cn } from "@/lib/utils";
 
-export type ChatOutgoingReceipt = "none" | "sent" | "read";
+export type ChatOutgoingReceipt = ChatMessageReceipt;
 
 export function ChatThreadMessageBubble({
   isMine,
@@ -40,11 +41,16 @@ export function ChatThreadMessageBubble({
       <div className="mt-1.5">{children}</div>
       {receipt !== "none" ? (
         <p
-          className={cn(
-            "mt-1 text-[11px] leading-none text-muted-foreground",
-            isMine ? "text-right" : "text-left",
-          )}
-          aria-label={receipt === "read" ? "Прочитано" : "Доставлено"}
+          className="mt-1 flex justify-end text-[11px] leading-none text-muted-foreground"
+          aria-label={
+            receipt === "read"
+              ? isMine
+                ? "Прочитано собеседником"
+                : "Прочитано вами"
+              : isMine
+                ? "Доставлено"
+                : "Получено"
+          }
         >
           <span className="tracking-tight">{receipt === "read" ? "✓✓" : "✓"}</span>
         </p>

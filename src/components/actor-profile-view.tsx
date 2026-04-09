@@ -12,8 +12,9 @@ import type {
 } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProfileStarRatingInteractive } from "@/components/profile-star-rating-interactive";
 import { StarRatingDisplay } from "@/components/star-rating-display";
-import { calculateAge, cn, russianYearsWord } from "@/lib/utils";
+import { calculateAge, russianYearsWord } from "@/lib/utils";
 import {
   ethnicAppearanceLabel,
   facialHairLabel,
@@ -22,9 +23,17 @@ import {
   tattooPiercingLabel,
 } from "@/lib/actor-form-constants";
 import { availabilityLabel, bodyTypeLabel, genderLabel } from "@/lib/profile-labels";
+import { CastingHistoryList } from "@/components/casting-history-list";
+import type { SerializedHomeCasting } from "@/components/home-public-browse";
 import { ProducerInviteToProject } from "@/components/producer-invite-to-project";
 import { ProfilePortfolioSection } from "@/components/profile-portfolio-section";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
+
+export type ActorCastingHistoryRow = {
+  serialized: SerializedHomeCasting;
+  status: string;
+};
 
 export type ActorProfileViewMedia = {
   id: string;
@@ -68,6 +77,12 @@ type Props = {
   producerInvite?: { actorProfileId: string; castings: { id: string; title: string }[] };
   /** Авторизованный пользователь может лайкать фото в лайтбоксе */
   canLikePortfolioPhotos?: boolean;
+  /** Публичный просмотр чужого профиля */
+  ratingInteractive?: { subjectUserId: string; initialStars: number | null };
+  /** Одобренные кастинги: кабинет и витрина; если не передано — блок скрыт */
+  castingHistory?: ActorCastingHistoryRow[];
+  /** Витрина: только для вошедших открывать карточку кастинга */
+  historyCanBrowseCastings?: boolean;
 };
 
 export function ActorProfileView({
@@ -78,6 +93,9 @@ export function ActorProfileView({
   showCatalogBack,
   producerInvite,
   canLikePortfolioPhotos = false,
+  ratingInteractive,
+  castingHistory,
+  historyCanBrowseCastings = true,
 }: Props) {
   const mediaSrc = (m: ActorProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
 
@@ -143,27 +161,28 @@ export function ActorProfileView({
 
           <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 flex-1 space-y-3">
                 <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{profile.fullName}</h1>
-              </div>
-              <div
-                className={cn(
-                  "flex shrink-0 flex-col items-center gap-3 sm:items-end sm:pt-0.5",
-                  producerInvite ? "sm:min-w-[220px]" : "",
-                )}
-              >
                 <StarRatingDisplay
                   average={Number(profile.ratingAverage)}
                   count={profile.ratingCount}
                   size="lg"
                 />
-                {producerInvite ? (
+                {variant === "public" && ratingInteractive ? (
+                  <ProfileStarRatingInteractive
+                    subjectUserId={ratingInteractive.subjectUserId}
+                    initialStars={ratingInteractive.initialStars}
+                  />
+                ) : null}
+              </div>
+              {producerInvite ? (
+                <div className="flex shrink-0 flex-col items-center gap-3 sm:items-end sm:pt-0.5 sm:min-w-[220px]">
                   <ProducerInviteToProject
                     actorProfileId={producerInvite.actorProfileId}
                     castings={producerInvite.castings}
                   />
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             {variant === "cabinet" && editHref ? (
@@ -278,6 +297,23 @@ export function ActorProfileView({
           videos={videos.map((m) => ({ id: m.id, src: mediaSrc(m)! }))}
           canLike={canLikePortfolioPhotos}
         />
+      ) : null}
+
+      {castingHistory !== undefined ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">История одобренных кастингов</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {castingHistory.length === 0 ? (
+              <p className="text-muted-foreground">
+                Пока нет записей со статусом приглашение / принят / кастинг пройден.
+              </p>
+            ) : (
+              <CastingHistoryList rows={castingHistory} canBrowse={historyCanBrowseCastings} />
+            )}
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

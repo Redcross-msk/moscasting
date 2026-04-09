@@ -16,8 +16,10 @@ export default async function ActorLayout({ children }: { children: React.ReactN
   await redirectIfUserSuspended(session.user.id);
 
   return (
-    <Suspense fallback={<ActorChromeFallback />}>
-      <ActorWorkspaceChrome role={session.user.role}>{children}</ActorWorkspaceChrome>
-    </Suspense>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Suspense fallback={<ActorChromeFallback />}>
+        <ActorWorkspaceChrome role={session.user.role}>{children}</ActorWorkspaceChrome>
+      </Suspense>
+    </div>
   );
 }

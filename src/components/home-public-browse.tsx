@@ -21,6 +21,7 @@ import { castingCategoryLabelRu, formatShootDateTimeRu, type SerializedRoleReq }
 import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 import { castingLocationParts } from "@/lib/casting-location-lines";
 import { useFavoritesPageSizes } from "@/hooks/use-favorites-page-sizes";
+import { useScrollTopOnPageChange } from "@/hooks/use-scroll-top-on-page-change";
 import { calculateAge, cn, russianYearsWord } from "@/lib/utils";
 
 export type SerializedHomeCasting = {
@@ -613,6 +614,9 @@ export function HomePublicBrowse({
     if (!favoritesPagination) return;
     if (favActorsPage > favActorsTotalPages) setFavActorsPage(favActorsTotalPages);
   }, [favoritesPagination, favActorsPage, favActorsTotalPages]);
+
+  useScrollTopOnPageChange(safeFavCastingsPage);
+  useScrollTopOnPageChange(safeFavActorsPage);
 
   return (
     <>

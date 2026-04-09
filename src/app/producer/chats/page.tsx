@@ -24,7 +24,7 @@ export default async function ProducerChatsPage() {
   const data = await getProducerChatInboxData(profile.id, session.user.id);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col pb-8">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-0 sm:pb-4">
       <Suspense fallback={<InboxFallback />}>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <ProducerChatsInbox

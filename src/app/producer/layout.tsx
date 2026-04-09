@@ -16,8 +16,10 @@ export default async function ProducerLayout({ children }: { children: React.Rea
   await redirectIfUserSuspended(session.user.id);
 
   return (
-    <Suspense fallback={<ProducerChromeFallback />}>
-      <ProducerWorkspaceChrome role={session.user.role}>{children}</ProducerWorkspaceChrome>
-    </Suspense>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Suspense fallback={<ProducerChromeFallback />}>
+        <ProducerWorkspaceChrome role={session.user.role}>{children}</ProducerWorkspaceChrome>
+      </Suspense>
+    </div>
   );
 }

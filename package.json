@@ -13,7 +13,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force"
+    "db:reset": "prisma migrate reset --force",
+    "db:backfill-ratings": "tsx src/scripts/backfill-profile-ratings.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

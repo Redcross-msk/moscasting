@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ModerationStatus, ReviewModerationStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { ProfileStarRatingInteractive } from "@/components/profile-star-rating-interactive";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 import { ProfilePortfolioSection } from "@/components/profile-portfolio-section";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,8 @@ type Props = {
   filmographyEntries?: ProducerFilmographyCard[];
   reviews?: ProducerReviewRow[];
   canLikePortfolioPhotos?: boolean;
+  /** Публичный просмотр чужого профиля: оценка звёздами с профиля */
+  ratingInteractive?: { subjectUserId: string; initialStars: number | null };
 };
 
 export function ProducerProfileView({
@@ -80,6 +83,7 @@ export function ProducerProfileView({
   filmographyEntries = [],
   reviews = [],
   canLikePortfolioPhotos = false,
+  ratingInteractive,
 }: Props) {
   const mediaSrc = (m: ProducerProfileViewMedia) => resolveUploadedMediaSrc(m.publicUrl, m.storageKey);
   const avatar =
@@ -104,17 +108,19 @@ export function ProducerProfileView({
           </div>
 
           <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-              <div className="min-w-0 space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{profile.fullName}</h1>
-              </div>
-              <div className="flex shrink-0 flex-col items-center gap-3 sm:items-end sm:pt-0.5">
-                <StarRatingDisplay
-                  average={Number(profile.ratingAverage)}
-                  count={profile.ratingCount}
-                  size="lg"
+            <div className="space-y-3">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{profile.fullName}</h1>
+              <StarRatingDisplay
+                average={Number(profile.ratingAverage)}
+                count={profile.ratingCount}
+                size="lg"
+              />
+              {variant === "public" && ratingInteractive ? (
+                <ProfileStarRatingInteractive
+                  subjectUserId={ratingInteractive.subjectUserId}
+                  initialStars={ratingInteractive.initialStars}
                 />
-              </div>
+              ) : null}
             </div>
 
             {variant === "cabinet" && editHref ? (

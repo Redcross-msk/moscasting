@@ -18,7 +18,7 @@ export function ChatsNavButton({ href, className, variant = "outline" }: ChatsNa
 
   return (
     <Button variant={variant} size="sm" className={cn("relative overflow-visible", className)} asChild>
-      <Link href={href} className="relative">
+      <Link href={href} className="relative overflow-visible">
         Чаты
         {count > 0 ? (
           <span

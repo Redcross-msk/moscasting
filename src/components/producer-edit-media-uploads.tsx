@@ -12,6 +12,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
+import { canUseBlobImagePreview } from "@/lib/client-image-preview";
 
 type PortfolioPhotoItem = {
   id: string;
@@ -23,7 +24,7 @@ type PortfolioPhotoItem = {
 type StagedPortfolioPhoto = {
   id: string;
   batchId: string;
-  previewUrl: string;
+  blobPreviewUrl: string | null;
   uploading: boolean;
 };
 
@@ -68,8 +69,9 @@ export function ProducerEditMediaUploads({
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const [photosErr, setPhotosErr] = useState<string | null>(null);
   const [portfolioMutErr, setPortfolioMutErr] = useState<string | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const [avatarUrlAfterUpload, setAvatarUrlAfterUpload] = useState<string | null>(null);
+  const [avatarStorageKeyAfterUpload, setAvatarStorageKeyAfterUpload] = useState<string | null>(null);
   const [extraPortfolioPhotos, setExtraPortfolioPhotos] = useState<PortfolioPhotoItem[]>([]);
   const [photosOk, setPhotosOk] = useState(false);
 
@@ -82,11 +84,17 @@ export function ProducerEditMediaUploads({
 
   useEffect(() => {
     setAvatarUrlAfterUpload(null);
+    setAvatarStorageKeyAfterUpload(null);
   }, [initialAvatarUrl]);
 
-  const avatarDisplayRaw = avatarPreview ?? avatarUrlAfterUpload ?? initialAvatarUrl;
+  const avatarDisplayRaw =
+    avatarBlobUrl ?? avatarUrlAfterUpload ?? initialAvatarUrl;
   const avatarDisplay =
-    avatarPreview ?? resolveUploadedMediaSrc(avatarUrlAfterUpload ?? initialAvatarUrl, null);
+    avatarBlobUrl ??
+    resolveUploadedMediaSrc(
+      avatarUrlAfterUpload ?? initialAvatarUrl,
+      avatarStorageKeyAfterUpload,
+    );
 
   useEffect(() => {
     const serverIds = new Set(portfolioPhotosFromServer.map((p) => p.id));
@@ -105,7 +113,11 @@ export function ProducerEditMediaUploads({
     uploadAbortRef.current?.abort();
     uploadAbortRef.current = null;
     setStagedPortfolio((prev) => {
-      prev.filter((s) => s.batchId === batchId).forEach((s) => URL.revokeObjectURL(s.previewUrl));
+      prev
+        .filter((s) => s.batchId === batchId)
+        .forEach((s) => {
+          if (s.blobPreviewUrl) URL.revokeObjectURL(s.blobPreviewUrl);
+        });
       return prev.filter((s) => s.batchId !== batchId);
     });
     setPhotosUploading(false);
@@ -126,7 +138,7 @@ export function ProducerEditMediaUploads({
           ? crypto.randomUUID()
           : `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       batchId,
-      previewUrl: URL.createObjectURL(file),
+      blobPreviewUrl: canUseBlobImagePreview(file) ? URL.createObjectURL(file) : null,
       uploading: true,
     }));
 
@@ -171,7 +183,9 @@ export function ProducerEditMediaUploads({
         if (!r.ok || data.error) {
           setPhotosErr(data.error ?? `Ошибка ${r.status}`);
           setStagedPortfolio((prev) => {
-            prev.filter((x) => batchIds.has(x.id)).forEach((x) => URL.revokeObjectURL(x.previewUrl));
+            prev.filter((x) => batchIds.has(x.id)).forEach((x) => {
+              if (x.blobPreviewUrl) URL.revokeObjectURL(x.blobPreviewUrl);
+            });
             return prev.filter((x) => !batchIds.has(x.id));
           });
           return;
@@ -197,7 +211,9 @@ export function ProducerEditMediaUploads({
         }
 
         setStagedPortfolio((prev) => {
-          prev.filter((x) => batchIds.has(x.id)).forEach((x) => URL.revokeObjectURL(x.previewUrl));
+          prev.filter((x) => batchIds.has(x.id)).forEach((x) => {
+            if (x.blobPreviewUrl) URL.revokeObjectURL(x.blobPreviewUrl);
+          });
           return prev.filter((x) => !batchIds.has(x.id));
         });
 
@@ -208,7 +224,9 @@ export function ProducerEditMediaUploads({
         console.error("[producer portfolio] ошибка:", e);
         setPhotosErr(e instanceof Error ? e.message : "Не удалось отправить фото");
         setStagedPortfolio((prev) => {
-          prev.filter((x) => batchIds.has(x.id)).forEach((x) => URL.revokeObjectURL(x.previewUrl));
+          prev.filter((x) => batchIds.has(x.id)).forEach((x) => {
+            if (x.blobPreviewUrl) URL.revokeObjectURL(x.blobPreviewUrl);
+          });
           return prev.filter((x) => !batchIds.has(x.id));
         });
       } finally {
@@ -257,21 +275,27 @@ export function ProducerEditMediaUploads({
                 input.value = "";
                 if (!file) return;
                 setAvatarErr(null);
-                const url = URL.createObjectURL(file);
-                setAvatarPreview(url);
+                let blobUrl: string | null = null;
+                if (canUseBlobImagePreview(file)) {
+                  blobUrl = URL.createObjectURL(file);
+                  setAvatarBlobUrl(blobUrl);
+                } else {
+                  setAvatarBlobUrl(null);
+                }
                 const fd = new FormData();
                 fd.append("avatar", file);
                 startAvatarTransition(async () => {
                   const res = await uploadProducerAvatarFormAction(fd);
                   if (res.error) {
                     setAvatarErr(res.error);
-                    URL.revokeObjectURL(url);
-                    setAvatarPreview(null);
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+                    setAvatarBlobUrl(null);
                     return;
                   }
-                  URL.revokeObjectURL(url);
-                  setAvatarPreview(null);
+                  if (blobUrl) URL.revokeObjectURL(blobUrl);
+                  setAvatarBlobUrl(null);
                   if (res.publicUrl) setAvatarUrlAfterUpload(res.publicUrl);
+                  setAvatarStorageKeyAfterUpload(res.storageKey ?? null);
                 });
               }}
             />
@@ -292,7 +316,7 @@ export function ProducerEditMediaUploads({
         <div>
           <h3 className="text-sm font-semibold text-primary">Фото портфолио</h3>
           <p className="text-xs text-muted-foreground">
-            До 5 файлов в профиле (вместе с аватаром). Превью появится сразу, затем загрузка на сервер.
+            До 5 файлов в профиле. JPEG/PNG/WebP — превью сразу; HEIC — после сервера (до 35 МБ на файл).
           </p>
         </div>
 
@@ -433,8 +457,15 @@ export function ProducerEditMediaUploads({
                 className="flex flex-col gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-2"
               >
                 <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.previewUrl} alt="" className="h-full w-full object-cover" />
+                  {s.blobPreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.blobPreviewUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-1 px-2 text-center text-[10px] text-muted-foreground">
+                      <span>Фото с телефона</span>
+                      <span className="font-medium text-foreground/80">Превью после загрузки</span>
+                    </div>
+                  )}
                   {s.uploading ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-xs font-medium">
                       <span className="mb-1">Отправка…</span>

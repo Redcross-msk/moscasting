@@ -5,6 +5,7 @@ import { ChatMessageContent } from "@/components/chat-message-content";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatReviewSection } from "@/components/chat-review-section";
 import { ChatThreadMessageBubble } from "@/components/chat-thread-message-bubble";
+import { applicationChatMessageReceipt } from "@/lib/chat-message-receipt";
 import { chatSenderPublicLabel, formatChatMessageTimeHm } from "@/lib/chat-sender-display";
 import { formatActorSurnameAndFirstName } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
     formatActorSurnameAndFirstName(app.producerProfile.fullName);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-0 sm:pb-2">
       <div className="shrink-0">
         <h1 className="text-xl font-bold">{app.casting.title}</h1>
         <p className="text-sm text-muted-foreground">{producerLine} · отклик</p>
@@ -40,9 +41,12 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 shadow-sm sm:p-3">
         {chat.messages.map((m) => {
           const isMine = m.senderId === session!.user.id;
-          const readByCounterparty =
-            isMine && m.reads.some((r) => r.userId === counterpartyUserId);
-          const receipt = isMine ? (readByCounterparty ? "read" : "sent") : "none";
+          const receipt = applicationChatMessageReceipt({
+            isMine,
+            viewerUserId: session!.user.id,
+            counterpartyUserId,
+            reads: m.reads,
+          });
           return (
             <ChatThreadMessageBubble
               key={m.id}

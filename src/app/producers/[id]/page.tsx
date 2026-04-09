@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { getPublicProducerProfile } from "@/server/services/producer-profile.service";
 import { attachPortfolioLikesToPhotos } from "@/server/media/portfolio-photo-likes";
 import { ProducerProfileView } from "@/components/producer-profile-view";
@@ -14,11 +15,24 @@ export default async function ProducerPublicPage({ params }: { params: Promise<{
 
   const completed = data.completedCastingsPublic ?? [];
 
+  let ratingInteractive: { subjectUserId: string; initialStars: number | null } | undefined;
+  const subjectUserId = data.user.id;
+  if (session?.user?.id && session.user.id !== subjectUserId) {
+    const row = await prisma.profileStarRating.findUnique({
+      where: {
+        authorId_subjectUserId: { authorId: session.user.id, subjectUserId },
+      },
+      select: { stars: true },
+    });
+    ratingInteractive = { subjectUserId, initialStars: row?.stars ?? null };
+  }
+
   return (
     <ProducerProfileView
       variant="public"
       castingLinkPrefix="/castings"
       canLikePortfolioPhotos={Boolean(session?.user?.id)}
+      ratingInteractive={ratingInteractive}
       profile={{
         companyName: data.companyName,
         fullName: data.fullName,

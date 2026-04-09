@@ -44,3 +44,17 @@ export function sniffImageMimeFromBuffer(buf: Buffer): string | null {
   }
   return null;
 }
+
+/** Видео с iOS: часто пустой type или application/octet-stream. */
+export function effectiveVideoMime(file: File): string {
+  const raw = (file.type || "").trim().toLowerCase();
+  if (raw && raw !== "application/octet-stream") {
+    if (raw === "video/x-m4v" || raw === "video/m4v") return "video/mp4";
+    return raw;
+  }
+  const n = file.name.toLowerCase();
+  if (n.endsWith(".mp4") || n.endsWith(".m4v")) return "video/mp4";
+  if (n.endsWith(".webm")) return "video/webm";
+  if (n.endsWith(".mov") || n.endsWith(".qt")) return "video/quicktime";
+  return raw || "";
+}

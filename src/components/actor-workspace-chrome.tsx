@@ -16,7 +16,7 @@ export function ActorWorkspaceChrome({ role, children }: { role: string; childre
 
   if (immersiveChat) {
     return (
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col max-md:max-h-[calc(100dvh-4.25rem)] max-md:overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="mb-3 shrink-0 border-b border-border pb-3">
           <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
             <Link href="/actor/chats">
@@ -31,8 +31,8 @@ export function ActorWorkspaceChrome({ role, children }: { role: string; childre
   }
 
   return (
-    <div className="min-w-0 space-y-5 sm:space-y-6">
-      <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 border-b border-border pb-4 lg:flex-nowrap lg:items-center lg:justify-between">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 sm:gap-6">
+      <div className="flex min-w-0 shrink-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 border-b border-border pb-4 lg:flex-nowrap lg:items-center lg:justify-between">
         <Button variant="outline" size="sm" className="w-fit shrink-0" asChild>
           <Link href="/explore?tab=castings">
             <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
@@ -43,7 +43,7 @@ export function ActorWorkspaceChrome({ role, children }: { role: string; childre
           <ExploreRoleBar role={role} />
         </div>
       </div>
-      {children}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

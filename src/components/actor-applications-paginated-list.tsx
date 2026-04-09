@@ -5,6 +5,7 @@ import type { ApplicationStatus } from "@prisma/client";
 import { ActorApplicationCatalogCard } from "@/components/actor-application-catalog-card";
 import { Button } from "@/components/ui/button";
 import { useActorApplicationsPageSize } from "@/hooks/use-applications-page-size";
+import { useScrollTopOnPageChange } from "@/hooks/use-scroll-top-on-page-change";
 import type { SerializedHomeCasting } from "@/components/home-public-browse";
 
 export type ActorApplicationListRow = {
@@ -33,6 +34,8 @@ export function ActorApplicationsPaginatedList({ rows }: { rows: ActorApplicatio
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useScrollTopOnPageChange(safePage);
 
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">Пока нет откликов — загляните в каталог кастингов.</p>;

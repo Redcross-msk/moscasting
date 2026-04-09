@@ -9,7 +9,8 @@ import {
   ChatThreadMessageBubble,
   type ChatOutgoingReceipt,
 } from "@/components/chat-thread-message-bubble";
-import { ChatInboxUnreadDot } from "@/components/chat-inbox-unread-dot";
+import { ChatInboxSortMenu } from "@/components/chat-inbox-sort-menu";
+import { ChatInboxUnreadBadge } from "@/components/chat-inbox-unread-badge";
 import { ProducerApplicationChatToolbar } from "@/components/producer-application-chat-toolbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +19,9 @@ import {
   sendDirectThreadMessageAction,
 } from "@/features/chat/direct-actions";
 import { useInboxPageSize } from "@/hooks/use-inbox-page-size";
-import {
-  CHAT_INBOX_SORT_OPTIONS,
-  type ChatInboxSortMode,
-  sortChatInboxRows,
-} from "@/lib/chat-inbox-sort";
+import { useScrollTopOnPageChange } from "@/hooks/use-scroll-top-on-page-change";
+import { type ChatInboxSortMode, sortChatInboxRows } from "@/lib/chat-inbox-sort";
+import { formatChatPreviewTime } from "@/lib/format-chat-preview-time";
 import { cn, formatActorSurnameAndFirstName } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -37,6 +36,8 @@ export type ProducerInboxItem = {
   applicationSubmittedAt: string;
   lastMessageIsMine: boolean | null;
   hasUnread: boolean;
+  unreadCount: number;
+  lastMessageAt: string;
 };
 
 type MergedRow = ProducerInboxItem & { sortDateMs: number };
@@ -137,6 +138,8 @@ export function ProducerChatsInbox({
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
+  useScrollTopOnPageChange(safePage);
+
   function sendDirect() {
     const text = composer.trim();
     if (!text || !panel || panel.kind !== "direct") return;
@@ -154,30 +157,14 @@ export function ProducerChatsInbox({
       className={cn(
         "flex min-h-0 flex-1 flex-col",
         !panel && "space-y-4",
-        panel && "min-h-0",
+        panel && "min-h-0 overflow-hidden",
       )}
     >
       {!panel ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <h1 className="text-2xl font-bold">Чаты</h1>
           {hasAny ? (
-            <label className="flex w-full flex-col gap-1 sm:w-auto sm:min-w-[min(100%,20rem)] sm:max-w-sm">
-              <span className="text-xs text-muted-foreground sm:sr-only">Сортировка</span>
-              <select
-                className={cn(
-                  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                )}
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as ChatInboxSortMode)}
-              >
-                {CHAT_INBOX_SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ChatInboxSortMenu sortMode={sortMode} onSortModeChange={setSortMode} className="w-full sm:w-auto" />
           ) : null}
         </div>
       ) : null}
@@ -191,7 +178,7 @@ export function ProducerChatsInbox({
         className={cn(
           "min-h-0 gap-0 md:grid md:grid-cols-12 md:items-stretch md:gap-4",
           panel
-            ? "flex flex-1 flex-col max-md:min-h-0 md:min-h-[min(560px,calc(100dvh-10rem))] md:max-h-[calc(100dvh-10rem)]"
+            ? "flex flex-1 min-h-0 flex-col overflow-hidden md:min-h-[min(560px,calc(100dvh-10rem))] md:max-h-[calc(100dvh-10rem)]"
             : "md:min-h-[480px]",
         )}
       >
@@ -213,13 +200,17 @@ export function ProducerChatsInbox({
                         type="button"
                         onClick={() => loadApp(row.chatId)}
                         className={cn(
-                          "flex w-full items-start gap-2 rounded-lg border border-border bg-background/90 px-3 py-3 text-left text-sm shadow-sm transition hover:bg-muted/40 active:bg-muted/60",
+                          "relative flex w-full flex-col gap-2 rounded-lg border border-border bg-background/90 px-3 pb-7 pt-3 text-left text-sm shadow-sm transition hover:bg-muted/40 active:bg-muted/60",
                           panel?.kind === "application" &&
                             panel.chatId === row.chatId &&
                             "border-primary/40 bg-primary/5 font-medium ring-2 ring-primary/20",
                         )}
                       >
-                        <span className="min-w-0 flex-1">
+                        <ChatInboxUnreadBadge
+                          count={clearedUnread[`app:${row.chatId}`] ? 0 : row.unreadCount}
+                          className="absolute right-2 top-2"
+                        />
+                        <span className="min-w-0 flex-1 pr-10">
                           <span className="block font-semibold leading-snug">{row.castingTitle}</span>
                           <span className="mt-1 block text-xs text-muted-foreground">
                             {formatActorSurnameAndFirstName(row.actorName)}
@@ -230,9 +221,9 @@ export function ProducerChatsInbox({
                             </span>
                           ) : null}
                         </span>
-                        <ChatInboxUnreadDot
-                          show={row.hasUnread && !clearedUnread[`app:${row.chatId}`]}
-                        />
+                        <span className="absolute bottom-2 right-2 text-xs tabular-nums text-muted-foreground">
+                          {formatChatPreviewTime(row.lastMessageAt)}
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -273,7 +264,7 @@ export function ProducerChatsInbox({
           className={cn(
             "flex min-h-0 flex-col overflow-hidden md:col-span-8 md:min-h-0",
             !panel && "hidden md:flex md:min-h-[480px]",
-            panel && "max-md:flex-1 md:h-full md:max-h-none",
+            panel && "min-h-0 flex-1 md:h-full md:max-h-none",
           )}
         >
           {!panel ? (

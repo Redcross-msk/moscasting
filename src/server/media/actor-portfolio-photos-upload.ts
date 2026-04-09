@@ -6,7 +6,7 @@ import { effectiveImageMime, sniffImageMimeFromBuffer } from "@/server/media/eff
 import { normalizePortfolioImageBuffer } from "@/server/media/portfolio-image-normalize";
 import { savePublicUpload } from "@/server/uploads/save-public-upload";
 
-const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 35 * 1024 * 1024;
 const IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -34,6 +34,13 @@ export async function runActorPortfolioPhotosUpload(
   const valid = rawFiles.filter((f) => f && typeof f !== "string" && f.size > 0) as File[];
   if (valid.length === 0) return { error: "Выберите хотя бы одно фото" };
 
+  const overLimit = valid.filter((f) => f.size > MAX_PHOTO_BYTES);
+  if (overLimit.length > 0) {
+    return {
+      error: `Файл слишком большой (до 35 МБ на фото): ${overLimit[0].name}`,
+    };
+  }
+
   const count = await prisma.mediaFile.count({ where: { actorProfileId } });
   const maxAdd = Math.max(0, 10 - count);
   if (maxAdd <= 0) return { error: "Уже максимум 10 файлов в портфолио" };
@@ -52,7 +59,6 @@ export async function runActorPortfolioPhotosUpload(
   try {
     for (const file of valid) {
       if (added >= maxAdd) break;
-      if (file.size > MAX_PHOTO_BYTES) continue;
       const raw = Buffer.from(await file.arrayBuffer());
       let mimeIn = effectiveImageMime(file).toLowerCase();
       if (mimeIn === "image/jpg") mimeIn = "image/jpeg";

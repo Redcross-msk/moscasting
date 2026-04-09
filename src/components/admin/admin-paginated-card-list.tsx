@@ -2,6 +2,7 @@
 
 import { Children, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useScrollTopOnPageChange } from "@/hooks/use-scroll-top-on-page-change";
 
 const DEFAULT_PAGE_MOBILE = 4;
 /** Совпадает с breakpoint `md` в Tailwind */
@@ -58,6 +59,8 @@ export function AdminPaginatedCardList({
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useScrollTopOnPageChange(safePage);
 
   if (items.length === 0) return null;
 

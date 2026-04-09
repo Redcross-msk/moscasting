@@ -3,8 +3,8 @@ import {
   ReviewDirection,
   ReviewModerationStatus,
 } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { recalculateSubjectProfileAggregates } from "@/server/services/profile-star-rating.service";
 
 export async function createReview(params: {
   applicationId: string;
@@ -97,27 +97,7 @@ export async function hideReview(reviewId: string) {
 }
 
 async function recalculateSubjectRating(subjectUserId: string) {
-  const agg = await prisma.review.aggregate({
-    where: {
-      subjectId: subjectUserId,
-      moderationStatus: ReviewModerationStatus.APPROVED,
-    },
-    _avg: { stars: true },
-    _count: { _all: true },
-  });
-
-  const avg = agg._avg.stars ?? 0;
-  const count = agg._count._all;
-  const dec = new Prisma.Decimal(Number(avg).toFixed(2));
-
-  await prisma.actorProfile.updateMany({
-    where: { userId: subjectUserId },
-    data: { ratingAverage: dec, ratingCount: count },
-  });
-  await prisma.producerProfile.updateMany({
-    where: { userId: subjectUserId },
-    data: { ratingAverage: dec, ratingCount: count },
-  });
+  await recalculateSubjectProfileAggregates(subjectUserId);
 }
 
 export async function listPendingReviews() {
