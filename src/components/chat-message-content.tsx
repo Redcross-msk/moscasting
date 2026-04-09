@@ -5,6 +5,7 @@ import {
   parseCastingInviteDetailsPayload,
   parseChatAttachmentPayload,
 } from "@/lib/message-payload";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 export function ChatMessageContent({ body, payload }: { body: string; payload: unknown | null | undefined }) {
   const actorCard = parseActorProfilePayload(payload);
@@ -19,12 +20,21 @@ export function ChatMessageContent({ body, payload }: { body: string; payload: u
         <div className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
           {attach.attachmentKind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={attach.url} alt="" className="max-h-64 w-full object-contain" />
+            <img
+              src={resolveUploadedMediaSrc(attach.url, null) ?? attach.url}
+              alt=""
+              className="max-h-64 w-full object-contain"
+            />
           ) : attach.attachmentKind === "video" ? (
-            <video src={attach.url} controls className="max-h-64 w-full" playsInline />
+            <video
+              src={resolveUploadedMediaSrc(attach.url, null) ?? attach.url}
+              controls
+              className="max-h-64 w-full"
+              playsInline
+            />
           ) : null}
           <a
-            href={attach.url}
+            href={resolveUploadedMediaSrc(attach.url, null) ?? attach.url}
             target="_blank"
             rel="noopener noreferrer"
             className="block px-2 py-2 text-xs font-medium text-primary hover:underline"

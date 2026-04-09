@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isProducerFilmographyEntryAvailable, PRISMA_CLIENT_OUTDATED_HINT } from "@/lib/prisma-runtime";
-import { deletePublicUploadFile, savePublicUpload } from "@/server/uploads/save-public-upload";
+import {
+  deletePublicUploadFile,
+  relativePathFromPublicUploadUrl,
+  savePublicUpload,
+} from "@/server/uploads/save-public-upload";
 import { prepareUploadedProfileImage } from "@/server/media/prepare-uploaded-image";
 
 const POSTER_MAX_BYTES = 12 * 1024 * 1024;
@@ -74,9 +78,8 @@ export async function deleteFilmographyEntryAction(entryId: string) {
   });
   if (!row) throw new Error("Не найдено");
   const url = row.posterPublicUrl?.trim();
-  if (url?.startsWith("/uploads/")) {
-    await deletePublicUploadFile(url.replace(/^\/uploads\//, ""));
-  }
+  const rel = url ? relativePathFromPublicUploadUrl(url) : null;
+  if (rel) await deletePublicUploadFile(rel);
   await prisma.producerFilmographyEntry.delete({ where: { id: entryId } });
   revalidatePath("/producer/profile");
   revalidatePath("/producer/profile/edit");

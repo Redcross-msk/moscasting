@@ -9,6 +9,7 @@ import { formatCastingPaymentLine } from "@/lib/casting-payment-display";
 import { parseShootDatesYmdFromJson } from "@/lib/casting-shoot-dates";
 import { parseRoleRequirementsJson } from "@/lib/casting-role-json";
 import { castingLocationParts } from "@/lib/casting-location-lines";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 import type { ReactNode } from "react";
 import type { getCastingPublic } from "@/server/services/casting.service";
 
@@ -215,27 +216,28 @@ export function CastingPublicDetail({
         <section className="space-y-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Материалы</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleMedia.map((m) =>
-              m.mimeType?.startsWith("video/") ? (
+            {visibleMedia.map((m) => {
+              const src = resolveUploadedMediaSrc(m.publicUrl, m.storageKey) ?? m.publicUrl!;
+              return m.mimeType?.startsWith("video/") ? (
                 <video
                   key={m.id}
-                  src={m.publicUrl!}
+                  src={src}
                   controls
                   className="aspect-video w-full rounded-lg border border-border bg-black object-contain"
                 />
               ) : (
                 <a
                   key={m.id}
-                  href={m.publicUrl!}
+                  href={src}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="overflow-hidden rounded-lg border border-border bg-muted/30"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.publicUrl!} alt="" className="aspect-video w-full object-cover" />
+                  <img src={src} alt="" className="aspect-video w-full object-cover" />
                 </a>
-              ),
-            )}
+              );
+            })}
           </div>
         </section>
       ) : null}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * Показывает кадр из видео как poster (как обложка), чтобы не было «чёрного экрана» до нажатия Play.
- * Работает для того же origin, что и страница (`/uploads/...`).
+ * Работает для того же origin (`/api/media/...` или прямой URL).
  */
 export function VideoWithPosterFrame({ src, className }: { src: string; className?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);

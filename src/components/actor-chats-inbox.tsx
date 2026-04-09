@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { ApplicationStatus } from "@prisma/client";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatMessageContent } from "@/components/chat-message-content";
+import { ChatMessagesScrollArea } from "@/components/chat-messages-scroll-area";
 import {
   ChatThreadMessageBubble,
   type ChatOutgoingReceipt,
@@ -332,7 +333,14 @@ export function ActorChatsInbox({
                 <h2 className="text-lg font-bold leading-tight">{panel.title}</h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">{panel.subtitle}</p>
               </div>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border/80 bg-muted/20 p-2 touch-pan-y sm:p-3">
+              <ChatMessagesScrollArea
+                scrollKey={
+                  panel.kind === "application"
+                    ? `${panel.chatId}-${panel.messages.length}`
+                    : `${panel.threadId}-${panel.messages.length}`
+                }
+                className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border/80 bg-muted/20 p-2 touch-pan-y sm:p-3"
+              >
                 {panel.messages.map((m) => (
                   <ChatThreadMessageBubble
                     key={m.id}
@@ -349,7 +357,7 @@ export function ActorChatsInbox({
                     )}
                   </ChatThreadMessageBubble>
                 ))}
-              </div>
+              </ChatMessagesScrollArea>
               {panel.kind === "application" ? (
                 <div className="mt-2 shrink-0 sm:mt-3">
                   <ChatComposerUnified

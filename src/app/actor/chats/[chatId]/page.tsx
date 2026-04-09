@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getChatWithAccess } from "@/server/services/chat.service";
 import { ChatMessageContent } from "@/components/chat-message-content";
+import { ChatMessagesScrollArea } from "@/components/chat-messages-scroll-area";
 import { ChatComposerUnified } from "@/components/chat-composer-unified";
 import { ChatReviewSection } from "@/components/chat-review-section";
 import { ChatThreadMessageBubble } from "@/components/chat-thread-message-bubble";
@@ -38,7 +39,10 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
         role="ACTOR"
       />
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3">
+      <ChatMessagesScrollArea
+        scrollKey={`${chatId}-${chat.messages.length}`}
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3"
+      >
         {chat.messages.map((m) => {
           const isMine = m.senderId === session!.user.id;
           const receipt = applicationChatMessageReceipt({
@@ -60,7 +64,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
             </ChatThreadMessageBubble>
           );
         })}
-      </div>
+      </ChatMessagesScrollArea>
 
       <div className="shrink-0">
         <ChatComposerUnified chatId={chatId} disabled={!!chat.closedAt} />

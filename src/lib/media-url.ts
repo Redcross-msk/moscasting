@@ -1,22 +1,31 @@
 /**
+ * Файлы лежат в `public/uploads`, но отдаём через `/api/media/…` (Route Handler читает с диска).
+ * Иначе Next отдаёт только то, что было в билде, и свежие загрузки с телефона часто дают 404 на `/uploads/…`.
+ */
+function mediaApiPathFromRelativeKey(key: string): string {
+  const clean = key.trim().replace(/^\/+/, "").replace(/\\/g, "/");
+  return `/api/media/${clean}`;
+}
+
+/**
  * Ссылки на файлы из `public/uploads`: в БД хранятся `publicUrl` и `storageKey`.
- * Реальный путь к файлу на диске задаёт `storageKey`; `publicUrl` бывает неверным
- * (другой хост, заглушка S3, устаревшее значение) — тогда <img> даёт «битую» картинку.
- * Поэтому при наличии ключа всегда строим URL из него.
+ * Реальный путь к файлу задаёт `storageKey`; при его наличии строим URL через API.
  */
 export function resolveUploadedMediaSrc(
   publicUrl: string | null | undefined,
   storageKey: string | null | undefined,
 ): string | null {
   const key = storageKey?.trim().replace(/^\/+/, "").replace(/\\/g, "/");
-  const fromKey = key ? `/uploads/${key}` : null;
-
-  if (fromKey) return fromKey;
+  if (key) return mediaApiPathFromRelativeKey(key);
 
   const u = publicUrl?.trim() ?? "";
   if (!u) return null;
 
-  if (u.startsWith("/uploads/")) return u;
+  if (u.startsWith("/api/media/")) return u;
+
+  if (u.startsWith("/uploads/")) {
+    return mediaApiPathFromRelativeKey(u.slice("/uploads/".length));
+  }
 
   if (u.startsWith("http://") || u.startsWith("https://")) {
     try {
@@ -32,8 +41,11 @@ export function resolveUploadedMediaSrc(
         return null;
       }
       const p = parsed.pathname;
+      if (p.startsWith("/api/media/")) {
+        return `${parsed.origin}${p}${parsed.search}`;
+      }
       if (p.startsWith("/uploads/")) {
-        return p;
+        return `${parsed.origin}${mediaApiPathFromRelativeKey(p.slice("/uploads/".length))}${parsed.search}`;
       }
     } catch {
       return null;

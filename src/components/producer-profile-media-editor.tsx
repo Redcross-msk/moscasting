@@ -6,10 +6,12 @@ import {
   moveProducerMediaAction,
   setProducerAvatarMediaFormAction,
 } from "@/features/media/actions";
+import { resolveUploadedMediaSrc } from "@/lib/media-url";
 
 type MediaRow = {
   id: string;
   publicUrl: string | null;
+  storageKey?: string | null;
   isAvatar: boolean;
   sortOrder: number;
 };
@@ -43,7 +45,11 @@ export function ProducerProfileMediaEditor({ media }: { media: MediaRow[] }) {
                   <div className="h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
                     {m.publicUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.publicUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={resolveUploadedMediaSrc(m.publicUrl, m.storageKey ?? null) ?? m.publicUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : null}
                   </div>
                   <div className="text-sm">
