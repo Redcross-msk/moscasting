@@ -1,5 +1,11 @@
 # Production-oriented image; для локальной разработки удобнее Postgres из compose + `npm run dev` на хосте.
-FROM node:20-bookworm-slim AS deps
+#
+# По умолчанию — public.ecr.aws (зеркало docker.io/library/node). Если с сервера docker.io недоступен (TLS timeout),
+# сборка всё равно тянет тот же образ Node.
+# Вернуть прямой Hub: docker compose build --build-arg NODE_IMAGE=node:20-bookworm-slim
+# Другое зеркало: --build-arg NODE_IMAGE=mirror.gcr.io/library/node:20-bookworm-slim
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:20-bookworm-slim
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y openssl libheif1 libde265-0 && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
@@ -18,7 +24,7 @@ ENV AUTH_SECRET="build-time-secret-must-be-32chars-minimum!!"
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-bookworm-slim AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
