@@ -13,7 +13,7 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 RUN npm install
 
-FROM node:20-bookworm-slim AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
