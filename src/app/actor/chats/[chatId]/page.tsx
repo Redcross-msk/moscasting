@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getChatWithAccess } from "@/server/services/chat.service";
 import { ChatMessageContent } from "@/components/chat-message-content";
 import { ChatMessagesScrollArea } from "@/components/chat-messages-scroll-area";
-import { ChatComposerUnified } from "@/components/chat-composer-unified";
+import { ChatThreadComposerBar } from "@/components/chat-thread-composer-bar";
 import { ChatReviewSection } from "@/components/chat-review-section";
 import { ChatThreadMessageBubble } from "@/components/chat-thread-message-bubble";
 import { applicationChatMessageReceipt } from "@/lib/chat-message-receipt";
@@ -41,7 +41,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
 
       <ChatMessagesScrollArea
         scrollKey={`${chatId}-${chat.messages.length}`}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 touch-pan-y shadow-sm sm:p-3"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-2 pb-4 touch-pan-y shadow-sm max-sm:pb-[min(11.5rem,42vh)] sm:p-3"
       >
         {chat.messages.map((m) => {
           const isMine = m.senderId === session!.user.id;
@@ -66,9 +66,7 @@ export default async function ActorChatPage({ params }: { params: Promise<{ chat
         })}
       </ChatMessagesScrollArea>
 
-      <div className="sticky bottom-0 z-20 shrink-0 border-t border-border/60 bg-background pt-2 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))] dark:shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.25)]">
-        <ChatComposerUnified chatId={chatId} disabled={!!chat.closedAt} />
-      </div>
+      <ChatThreadComposerBar chatId={chatId} disabled={!!chat.closedAt} />
     </div>
   );
 }
