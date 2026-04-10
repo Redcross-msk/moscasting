@@ -11,6 +11,12 @@ services:
       - "5432:5432"
     volumes:
       - moscasting_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moscasting -d moscasting"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   app:
     build:
@@ -29,7 +35,8 @@ services:
       # Аватары и портфолио пишутся в public/uploads — без тома файлы пропадают при пересборке контейнера
       - moscasting_uploads:/app/public/uploads
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   caddy:
     image: caddy:2-alpine
