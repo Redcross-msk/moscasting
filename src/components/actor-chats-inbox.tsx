@@ -133,12 +133,13 @@ export function ActorChatsInbox({
     const app: MergedRow[] = byCasting.map((c) => ({
       kind: "application" as const,
       ...c,
-      sortDateMs: Date.parse(c.applicationSubmittedAt),
+      /** Сверху — чаты с недавним последним сообщением (от директора или от вас). */
+      sortDateMs: Date.parse(c.lastMessageAt),
     }));
     const dir: MergedRow[] = direct.map((d) => ({
       kind: "direct" as const,
       ...d,
-      sortDateMs: Date.parse(d.threadUpdatedAt),
+      sortDateMs: Date.parse(d.lastMessageAt),
     }));
     return sortChatInboxRows([...app, ...dir], sortMode);
   }, [byCasting, direct, sortMode]);
@@ -208,7 +209,7 @@ export function ActorChatsInbox({
             panel ? "hidden md:flex" : "flex",
           )}
         >
-          <div className="flex min-h-0 max-h-full w-full flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-3 shadow-sm">
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-3 shadow-sm max-sm:max-h-[min(72dvh,36rem)] sm:max-h-full">
             {!hasAnyChat ? (
               <p className="text-sm text-muted-foreground">Пока нет чатов</p>
             ) : (

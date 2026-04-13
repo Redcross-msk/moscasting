@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { deleteActorPortfolioVideoAction } from "@/features/media/actions";
-import { uploadActorPortfolioVideoFormAction } from "@/features/media/upload-actions";
 import { Button } from "@/components/ui/button";
 import { VideoWithPosterFrame } from "@/components/video-with-poster-frame";
 import { resolveUploadedMediaSrc } from "@/lib/media-url";
@@ -53,18 +52,33 @@ export function ActorEditVideoVisit({ portfolioVideos }: { portfolioVideos: Vide
           const fd = new FormData();
           fd.append("video", file);
           startVideoTransition(async () => {
-            const res = await uploadActorPortfolioVideoFormAction(fd);
-            if (res.error) {
-              setVideoErr(res.error);
+            try {
+              const res = await fetch("/api/actor/portfolio-video", {
+                method: "POST",
+                body: fd,
+                credentials: "same-origin",
+              });
+              const data = (await res.json().catch(() => ({}))) as {
+                error?: string;
+                publicUrl?: string | null;
+                storageKey?: string | null;
+              };
+              if (!res.ok || data.error) {
+                setVideoErr(data.error ?? "Не удалось сохранить видео");
+                URL.revokeObjectURL(url);
+                setVideoPickPreview(null);
+                return;
+              }
               URL.revokeObjectURL(url);
               setVideoPickPreview(null);
-              return;
+              if (data.publicUrl) setVideoUrlAfterUpload(data.publicUrl);
+              setVideoStorageKeyAfterUpload(data.storageKey ?? null);
+              router.refresh();
+            } catch {
+              setVideoErr("Сеть оборвалась или таймаут — попробуйте ещё раз или меньший файл");
+              URL.revokeObjectURL(url);
+              setVideoPickPreview(null);
             }
-            URL.revokeObjectURL(url);
-            setVideoPickPreview(null);
-            if (res.publicUrl) setVideoUrlAfterUpload(res.publicUrl);
-            setVideoStorageKeyAfterUpload(res.storageKey ?? null);
-            router.refresh();
           });
         }}
       />

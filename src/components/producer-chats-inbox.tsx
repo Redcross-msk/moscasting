@@ -119,7 +119,7 @@ export function ProducerChatsInbox({
   const merged = useMemo((): MergedRow[] => {
     const rows: MergedRow[] = items.map((it) => ({
       ...it,
-      sortDateMs: Date.parse(it.applicationSubmittedAt),
+      sortDateMs: Date.parse(it.lastMessageAt),
     }));
     return sortChatInboxRows(rows, sortMode);
   }, [items, sortMode]);
@@ -189,7 +189,7 @@ export function ProducerChatsInbox({
             panel ? "hidden md:flex" : "flex",
           )}
         >
-          <div className="flex min-h-0 max-h-full w-full flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-3 shadow-sm">
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-card p-3 shadow-sm max-sm:max-h-[min(72dvh,36rem)] sm:max-h-full">
             {!hasAny ? (
               <p className="text-sm text-muted-foreground">Пока нет чатов</p>
             ) : (

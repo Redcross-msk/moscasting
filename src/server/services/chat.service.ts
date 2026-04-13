@@ -252,14 +252,16 @@ export async function getProducerChatInboxData(producerProfileId: string, viewer
     viewerUserId,
   );
 
-  const applicationItemsWithUnread = applicationItems.map((row) => {
-    const unreadCount = producerUnreadCounts.get(row.chatId) ?? 0;
-    return {
-      ...row,
-      unreadCount,
-      hasUnread: unreadCount > 0,
-    };
-  });
+  const applicationItemsWithUnread = applicationItems
+    .map((row) => {
+      const unreadCount = producerUnreadCounts.get(row.chatId) ?? 0;
+      return {
+        ...row,
+        unreadCount,
+        hasUnread: unreadCount > 0,
+      };
+    })
+    .sort((a, b) => Date.parse(b.lastMessageAt) - Date.parse(a.lastMessageAt));
 
   return {
     items: applicationItemsWithUnread,
@@ -301,14 +303,16 @@ export async function getActorChatInboxData(actorProfileId: string, viewerUserId
   const actorAppChatIds = [...byCasting.values()].map((r) => r.chatId);
   const actorUnreadCounts = await applicationUnreadMessageCountsFromViewer(actorAppChatIds, viewerUserId);
 
-  const byCastingRows = [...byCasting.values()].map((row) => {
-    const unreadCount = actorUnreadCounts.get(row.chatId) ?? 0;
-    return {
-      ...row,
-      unreadCount,
-      hasUnread: unreadCount > 0,
-    };
-  });
+  const byCastingRows = [...byCasting.values()]
+    .map((row) => {
+      const unreadCount = actorUnreadCounts.get(row.chatId) ?? 0;
+      return {
+        ...row,
+        unreadCount,
+        hasUnread: unreadCount > 0,
+      };
+    })
+    .sort((a, b) => Date.parse(b.lastMessageAt) - Date.parse(a.lastMessageAt));
 
   const directThreads = isProducerActorDirectThreadAvailable()
     ? await prisma.producerActorDirectThread.findMany({

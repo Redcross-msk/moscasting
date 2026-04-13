@@ -1,8 +1,8 @@
 export type ChatInboxSortMode = "respond_new" | "respond_old" | "msg_unread" | "msg_read";
 
 export const CHAT_INBOX_SORT_OPTIONS: { value: ChatInboxSortMode; label: string }[] = [
-  { value: "respond_new", label: "По дате отклика: новые первыми" },
-  { value: "respond_old", label: "По дате отклика: старые первыми" },
+  { value: "respond_new", label: "По последнему сообщению: недавние выше" },
+  { value: "respond_old", label: "По последнему сообщению: старые выше" },
   {
     value: "msg_unread",
     label: "По сообщениям: сначала с ответом собеседника (как непрочитанные)",
