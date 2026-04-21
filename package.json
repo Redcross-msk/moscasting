@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-may-demo": "tsx prisma/seed-may-demo-producers.ts",
     "db:reset": "prisma migrate reset --force",
     "db:backfill-ratings": "tsx src/scripts/backfill-profile-ratings.ts"
   },

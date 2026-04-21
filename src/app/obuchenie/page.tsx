@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export const metadata: Metadata = {
   title: "Обучение — МОСКАСТИНГ",
-  description: "Курсы актёрского мастерства: 8 и 16 часов, сертификат государственного образца.",
+  description: "Курсы актёрского мастерства: 8 и 16 часов; по итогам — сертификат о прохождении программы.",
 };
 
 export default async function ObucheniePage() {
@@ -70,9 +70,9 @@ export default async function ObucheniePage() {
         <h2 className="text-xl font-semibold">Почему учиться у нас</h2>
         <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
           <li>
-            <strong className="text-foreground">Государственные стандарты.</strong> Программа выстроена в соответствии с
-            требованиями к дополнительному профессиональному образованию; по итогам вы получаете сертификат
-            государственного образца.
+            <strong className="text-foreground">Внутренний стандарт платформы.</strong> Программа структурирована в
+            соответствии с внутренними требованиями платформы к содержанию и объёму занятий; по итогам вы получаете
+            сертификат о прохождении программы (документ о прохождении обучения).
           </li>
           <li>
             <strong className="text-foreground">Современные методики.</strong> Актуальные упражнения, много практики в

@@ -17,7 +17,7 @@ export function HomeServicesBanner() {
         <div className="border-b border-border bg-muted/40 px-4 py-6 sm:px-5">
           <h3 className="text-lg font-bold text-foreground">Курсы актёрского мастерства</h3>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            8- и 16-часовые программы для актёров второго плана и массовки: сертификат государственного образца и
+            8- и 16-часовые программы для актёров второго плана и массовки: по итогам — сертификат о прохождении программы;
             преподаватели из ведущих вузов страны.
           </p>
           <Button className="mt-4 w-full sm:w-auto" asChild>
@@ -27,7 +27,7 @@ export function HomeServicesBanner() {
         <div className="bg-muted/40 px-4 py-6 sm:px-5">
           <h3 className="text-lg font-bold text-foreground">Портфолио и видеовизитка</h3>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Профессиональное фото- и видеопортфолио по государственным стандартам — для кастингов, агентств и
+            Профессиональное фото- и видеопортфолио в стандартизированном формате — для кастингов, агентств и
             самопрезентации.
           </p>
           <Button className="mt-4 w-full sm:w-auto" asChild>
@@ -43,7 +43,7 @@ export function HomeServicesBanner() {
             Курсы актёрского мастерства
           </h3>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground lg:text-[15px]">
-            8- и 16-часовые программы для актёров второго плана и массовки: сертификат государственного образца и
+            8- и 16-часовые программы для актёров второго плана и массовки: по итогам — сертификат о прохождении программы;
             преподаватели из ведущих вузов страны.
           </p>
         </div>
@@ -61,7 +61,7 @@ export function HomeServicesBanner() {
           </Button>
           <h3 className="text-xl font-bold tracking-tight text-foreground lg:text-2xl">Портфолио и видеовизитка</h3>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground lg:text-[15px]">
-            Наша команда подготовит для вас профессиональное фото- и видеопортфолио государственного стандарта.
+            Наша команда подготовит для вас профессиональное фото- и видеопортфолио в стандартизированном формате.
           </p>
         </div>
       </div>
